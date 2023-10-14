@@ -1,5 +1,6 @@
 from time import sleep
 import concurrent.futures
+import re
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
 from common.utils.logger import logger
@@ -8,7 +9,6 @@ from web_scraping.pages.tj_case_searcher import TjCaseSearcher
 
 
 TJ_SITE_URL = "https://www.tjsp.jus.br/"
-TJ_BOOK_SEARCH_URL = "https://esaj.tjsp.jus.br/cdje/consultaAvancada.do#buscaavancada"
 
 
 class TjWebScraping:
@@ -22,54 +22,43 @@ class TjWebScraping:
         self, book_option_text, keywords, start_date, end_date, max_threads=4
     ):
         found_cases = []
-
-        self.driver.get(TJ_BOOK_SEARCH_URL)
-        self.driver.implicitly_wait(3)
-
         search_page = BookSearchPage(self.driver)
 
-        search_page.select_book(book_option_text)
-        search_page.set_keyword(keywords)
-        search_page.set_start_date(start_date)
-        search_page.set_end_date(end_date)
-        search_page.click_search_button()
-
-        page_count = 0
-        keyword_regex = search_page.prepare_keyword_regex(keywords)
-
-        next_button = search_page.find_next_button()
-        while next_button:
+        search_page \
+            .select_book(book_option_text) \
+            .set_keyword(keywords) \
+            .set_start_date(start_date) \
+            .set_end_date(end_date)
             
-            page_count += 1
-            pdf_urls = search_page.extract_pdf_urls_from_results()
-
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_threads
-            ) as executor:
-                results = list(
-                    executor.map(
-                        lambda args: search_page.find_cases_by_page_url
-                        (
-                            args, 
-                            keyword_regex
-                        ),
-                        pdf_urls,
-                    )
-                )
-
-            case_count = 0
-            for result in results:
-                case_count += len(result)
-                found_cases.append(result)
-
-            logger.info(f'Foram encontrados {case_count} processos na página {page_count} de resultados do Diário')
-
-            next_button = search_page.find_next_button()
-            if next_button:
-                next_button.click()
-
+        occurrences_list = search_page.click_search_button()
+        pdf_urls = [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
+        while occurrences_list.has_next_page():
+            occurrences_list.next_page()
             sleep(1)
+            pdf_urls += [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
 
+        keyword_regex = prepare_keyword_regex(keywords)
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=max_threads
+        ) as executor:
+            
+            results = list(
+                executor.map(
+                    lambda args: search_page.find_cases_by_page_url
+                    (
+                        args, 
+                        keyword_regex
+                    ),
+                    pdf_urls,
+                )
+            )
+
+        case_count = 0
+        for result in results:
+            case_count += len(result)
+            found_cases.append(result)
+
+        #logger.info(f'Foram encontrados {case_count} processos na página {page_count} de resultados do Diário')
         return clear_book_cases_result(found_cases)
 
     def filter_cases_performing_search(self, cases, wanted_exectdos):
@@ -121,6 +110,23 @@ class TjWebScraping:
 def clear_book_cases_result(cases):
     logger.info('\n\nEliminando processos duplicados ...\n\n')
     return remove_duplicate(flatten(cases))
+
+
+def prepare_keyword_regex(keywords):
+    for i in range(len(keywords)):
+        keyword = keywords[i]
+
+        while keyword.find(" ") != -1:
+            keyword = keyword.replace(" ", r"\s+")
+            
+        keyword = remove_accents(keyword).lower()
+        keywords[i] = keyword
+
+    union_keyword = "|".join(keywords)
+    return re.compile(
+        union_keyword,
+        re.IGNORECASE | re.UNICODE | re.MULTILINE | re.DOTALL,
+    )
 
 
     

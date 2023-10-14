@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from common.utils.string import remove_accents
 from common.utils.pdf import fetch_pdf_text_from_url
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
@@ -6,28 +5,23 @@ from common.utils.logger import logger
 from common.exceptions.app_exception import AppException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as EC
-from time import sleep
+from web_scraping.components.base_component import BaseComponent
 from web_scraping.components.calendar import find_calendar
 from web_scraping.pages.base_page import BasePage
 
 import re
 
+TJ_BASE_URL = "https://esaj.tjsp.jus.br"
 PDF_ELEMENT_XPATH = "/html/body/embed"
 PAGES_RESULT_ELEMENT_XPATH = '//*[@id="divResultadosSuperior"]/table/tbody/tr[1]/td[1]'
 
 class BookSearchPage(BasePage):
     def __init__(self, driver):
         super().__init__(driver)
+
         if not 'Consulta de Diário da Justiça Eletrônico' in self.driver.title:
-            raise AppException('Pagina atual não é a página de consulta do diário', 
-                               'URL atual: ' + self.driver.get_current_url())
-        
-        self.select_by = (By.XPATH, "/html/body/table[4]/tbody/tr/td/div[3]/table[2]/tbody/tr/td/form/div/table/tbody/tr[2]/td[2]/table/tbody/tr/td/select")
-        self.keyword_by = (By.ID, "procura")
-        self.calendar_start_by = (By.ID, "trigger2")
-        self.calendar_end_by = (By.ID, "trigger3")
-        self.search_by = (By.XPATH, '//*[@id="avancado"]/tbody/tr[5]/td[2]/table/tbody/tr/td/input[1]')
+            self.driver.get(TJ_BASE_URL + '/cdje/consultaAvancada.do#buscaavancada')
+            self.wait_load()
 
         self.case_number_regex = re.compile(
             r"\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2,4}\.\d{4}"
@@ -38,8 +32,15 @@ class BookSearchPage(BasePage):
             re.DOTALL | re.MULTILINE | re.UNICODE | re.IGNORECASE,
         )
 
+    book_select_by = (By.XPATH, "/html/body/table[4]/tbody/tr/td/div[3]/table[2]/tbody/tr/td/form/div/table/tbody/tr[2]/td[2]/table/tbody/tr/td/select")
+    keyword_by = (By.ID, "procura")
+    calendar_start_by = (By.ID, "trigger2")
+    calendar_end_by = (By.ID, "trigger3")
+    search_by = (By.XPATH, '//*[@id="avancado"]/tbody/tr[5]/td[2]/table/tbody/tr/td/input[1]')
+    results_by = (By.ID, 'divResultadosInferior')
+
     def select_book(self, option_text):
-        select = Select(self.driver.find_element(*self.select_by))
+        select = Select(self.driver.find_element(*self.book_select_by))
         options_text = [option.text for option in select.options]
 
         if option_text in options_text:
@@ -49,60 +50,31 @@ class BookSearchPage(BasePage):
                 "O Caderno definido para a pesquisa não foi encontrado, por favor selecionar uma opção valida"
             )
         
+        return self
+        
     def set_keyword(self, keywords):
         keywords = " OU ".join(keywords)
         self.driver.find_element(*self.keyword_by).send_keys(keywords)
+
+        return self
 
     def set_start_date(self, date):
         self.driver.find_element(*self.calendar_start_by).click()
         calendar = find_calendar(self.driver)
         calendar.set_date(date)
 
+        return self
+
     def set_end_date(self, date):
         self.driver.find_element(*self.calendar_end_by).click()
         calendar = find_calendar(self.driver)
         calendar.set_date(date)
 
+        return self
+
     def click_search_button(self):
         self.driver.find_element(*self.search_by).click()
-
-    def prepare_keyword_regex(self, keywords):
-        for i in range(len(keywords)):
-            keyword = keywords[i]
-
-            while keyword.find(" ") != -1:
-                keyword = keyword.replace(" ", r"\s+")
-                
-            keyword = remove_accents(keyword).lower()
-            keywords[i] = keyword
-
-        union_keyword = "|".join(keywords)
-        return re.compile(
-            union_keyword,
-            re.IGNORECASE | re.UNICODE | re.MULTILINE | re.DOTALL,
-        )
-
-    def extract_pdf_urls_from_results(self):
-        pdf_urls = []
-        base_url = "https://esaj.tjsp.jus.br"
-
-        self.driver.implicitly_wait(1)
-
-        occurrence_elements = self.wait.until(
-            EC.visibility_of_all_elements_located(
-                (By.CSS_SELECTOR, "tr.ementaclass a:first-child")
-            )
-        )
-
-        link_regex = re.compile(r"\('(.*?)'\)")
-        for ocurrence in occurrence_elements:
-            endpoint = link_regex.findall(ocurrence.get_attribute("onclick"))[0]
-            pdf_url = base_url + endpoint.replace(
-                "consultaSimples", "getPaginaDoDiario"
-            )
-            pdf_urls.append(pdf_url)
-
-        return pdf_urls
+        return OccurrencesList(self.driver.find_element(*self.results_by))
 
     def find_cases_by_keyword(self, pdf_text, keyword_regex):
         if not keyword_regex:
@@ -120,16 +92,6 @@ class BookSearchPage(BasePage):
                     cases_matched.append(case_number_match.group(0))
 
         return cases_matched
-
-    def find_next_button(self):
-        button_span = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "span.style5"))
-        )
-        a_elements = button_span.find_elements(By.TAG_NAME, "a")
-
-        for a in a_elements:
-            if a.text == "Próximo>":
-                return a
 
     def find_cases_by_page_url(self, pdf_url, keyword_regex):
         pdf_text = ''
@@ -149,9 +111,42 @@ class BookSearchPage(BasePage):
             logger.error(f'Erro ao obter os processos da url: {pdf_url}', e)
 
 
-def extract_pdf_link(occurrence_element):
-    re_pattern = r"\('(.*?)'\)"
-    return re.findall(re_pattern, occurrence_element.get_attribute("onclick"))[0]
+class OccurrencesList(BaseComponent):
+    def __init__(self, root):
+        super().__init__(root)
+
+    occurrences_by = (By.CLASS_NAME, 'fundocinza1')
+    nav_buttons_by = (By.CSS_SELECTOR, 'span.style5 a')
+
+    def get_occurences(self):
+        occurrences = self.root.find_elements(*self.occurrences_by)
+        return [Occurrence(item) for item in occurrences]
+    
+    def locate_next_button(self):
+        nav_buttons = self.root.find_elements(*self.nav_buttons_by)
+        for btn in nav_buttons:
+            if btn.text == "Próximo>":
+                return btn
+    
+    def has_next_page(self):
+        return True if self.locate_next_button() else False
+        
+    def next_page(self):
+        self.locate_next_button().click()
+
+
+class Occurrence(BaseComponent):
+    def __init__(self, root):
+        super().__init__(root)
+
+    def get_pdf_url(self):
+        anchor = self.root.find_elements(By.TAG_NAME, 'a')[0]
+        regex = r"\('(.*?)'\)"
+        endpoint = re.findall(regex, anchor.get_attribute('onclick'))[0]
+
+        return TJ_BASE_URL + endpoint.replace(
+            "consultaSimples", "getPaginaDoDiario"
+        )
 
 
 def get_previous_page_url(url):
