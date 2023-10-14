@@ -1,0 +1,6 @@
+.vscode
+venv
+*.xlsx
+*.log
+__pycache__
+*.pyc

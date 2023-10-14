@@ -1,0 +1,126 @@
+from time import sleep
+import concurrent.futures
+from common.utils.array import remove_duplicate, flatten
+from common.utils.string import remove_accents
+from common.utils.logger import logger
+from web_scraping.pages.book_search_page import BookSearchPage
+from web_scraping.pages.tj_case_searcher import TjCaseSearcher
+
+
+TJ_SITE_URL = "https://www.tjsp.jus.br/"
+TJ_BOOK_SEARCH_URL = "https://esaj.tjsp.jus.br/cdje/consultaAvancada.do#buscaavancada"
+
+
+class TjWebScraping:
+    def __init__(self, driver):
+        self.driver = driver
+
+    def navigate_to_tj_site(self):
+        self.driver.get(TJ_SITE_URL)
+
+    def get_book_cases_by_keywords(
+        self, book_option_text, keywords, start_date, end_date, max_threads=4
+    ):
+        found_cases = []
+
+        self.driver.get(TJ_BOOK_SEARCH_URL)
+        self.driver.implicitly_wait(3)
+
+        search_page = BookSearchPage(self.driver)
+
+        search_page.select_book(book_option_text)
+        search_page.set_keyword(keywords)
+        search_page.set_start_date(start_date)
+        search_page.set_end_date(end_date)
+        search_page.click_search_button()
+
+        page_count = 0
+        keyword_regex = search_page.prepare_keyword_regex(keywords)
+
+        next_button = search_page.find_next_button()
+        while next_button:
+            
+            page_count += 1
+            pdf_urls = search_page.extract_pdf_urls_from_results()
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_threads
+            ) as executor:
+                results = list(
+                    executor.map(
+                        lambda args: search_page.find_cases_by_page_url
+                        (
+                            args, 
+                            keyword_regex
+                        ),
+                        pdf_urls,
+                    )
+                )
+
+            case_count = 0
+            for result in results:
+                case_count += len(result)
+                found_cases.append(result)
+
+            logger.info(f'Foram encontrados {case_count} processos na página {page_count} de resultados do Diário')
+
+            next_button = search_page.find_next_button()
+            if next_button:
+                next_button.click()
+
+            sleep(1)
+
+        return clear_book_cases_result(found_cases)
+
+    def filter_cases_performing_search(self, cases, wanted_exectdos):
+        case_searcher = TjCaseSearcher(self.driver)
+        filtered_cases = []
+
+        wanted_exectdos = [remove_accents(exectdo).upper() for exectdo in wanted_exectdos]
+
+        #case_searcher.login(credentials)
+
+        cur_case_num = 0
+        case_count = len(cases)
+        for case_number in cases:
+            try:
+                cur_case_num += 1
+                logger.info(f'Análisando processo {cur_case_num} de {case_count}')
+                
+                case_page = case_searcher.load_case_page(case_number)
+
+                if case_page.is_private():
+                    continue
+
+                exectdo_name = case_page.get_exectdo_name()
+                if exectdo_name not in wanted_exectdos:
+                    continue
+
+                filtered_cases.append(case_number)
+
+                # try:
+                #     judgment_execution = case_page.get_judgment_execution()
+                #     if 'Cumprimento de Sentença' in judgment_execution:
+                #         filtered_cases.append(case_number)
+                # except:
+                #     case_class = case_page.get_class()
+                #     if 'Fazenda' in case_class:
+                #         filtered_cases.append(case_number)
+
+                # 1
+                # if not case_page.has_incident():
+                #     continue
+
+            finally:
+                self.driver.delete_all_cookies()
+                #sleep(2)
+
+        return filtered_cases
+
+
+def clear_book_cases_result(cases):
+    logger.info('\n\nEliminando processos duplicados ...\n\n')
+    return remove_duplicate(flatten(cases))
+
+
+    
