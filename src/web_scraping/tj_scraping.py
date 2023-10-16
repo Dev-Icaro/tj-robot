@@ -6,6 +6,7 @@ from common.utils.string import remove_accents
 from common.utils.logger import logger
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.tj_case_searcher import TjCaseSearcher
+from web_scraping.utils.book import Book, get_previous_page_url
 
 
 TJ_SITE_URL = "https://www.tjsp.jus.br/"
@@ -37,7 +38,13 @@ class TjWebScraping:
             sleep(1)
             pdf_urls += [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
 
+        pdf_urls = add_previous_pages_urls(pdf_urls)
+        book = Book()
+        for url in pdf_urls:
+            book.download_page(url)
+
         keyword_regex = prepare_keyword_regex(keywords)
+
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=max_threads
         ) as executor:
@@ -127,6 +134,16 @@ def prepare_keyword_regex(keywords):
         union_keyword,
         re.IGNORECASE | re.UNICODE | re.MULTILINE | re.DOTALL,
     )
+
+def add_previous_pages_urls(pages_urls):
+    new_pages_list = []
+
+    for url in pages_urls:
+        new_pages_list.append(url)
+        new_pages_list.append(get_previous_page_url(url))
+
+    return remove_duplicate(new_pages_list)
+
 
 
     
