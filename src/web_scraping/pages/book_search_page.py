@@ -117,10 +117,14 @@ class OccurrencesList(BaseComponent):
 
     occurrences_by = (By.CLASS_NAME, 'fundocinza1')
     nav_buttons_by = (By.CSS_SELECTOR, 'span.style5 a')
+    page_number_by = (By.CSS_SELECTOR, 'span.style5 strong')
 
     def get_occurences(self):
         occurrences = self.root.find_elements(*self.occurrences_by)
         return [Occurrence(item) for item in occurrences]
+    
+    def get_page_number(self):
+        return self.root.find_element(*self.page_number_by).text.strip()
     
     def locate_next_button(self):
         nav_buttons = self.root.find_elements(*self.nav_buttons_by)
