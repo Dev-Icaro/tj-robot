@@ -5,12 +5,13 @@ import pandas as pd
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from web_scraping.pages.book_search_page import BookSearchPage
-from web_scraping.pages.tj_case_searcher import TjCredentials
+from web_scraping.pages.case_page import TjCredentials
 from web_scraping.tj_scraping import TjWebScraping, clear_book_cases_result
 from common.utils.logger import logger
 from common.utils.config_file import read_config_file, validate_config_params
 from common.utils.xls import generate_xls_name, write_xls
 from web_scraping.common.utils.book_page import separate_pages_in_sequencial_chunks
+
 
 def test_scraping_result():
     logger.info("Bem-vindo ao TJ Scraping!")
@@ -92,8 +93,8 @@ def test_scraping_result():
 def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
 
-    df = pd.read_excel('processos_analisados.xlsx')
-    found_cases = df['processos_analisados'].to_list()
+    df = pd.read_excel("processos_analisados.xlsx")
+    found_cases = df["processos_analisados"].to_list()
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--disable-cookies")
@@ -107,13 +108,17 @@ def test_filter_result():
     cnpj = config["cnpj_tj"]
     password = config["senha_tj"]
     credentials = TjCredentials(cnpj, password)
-    
-    filter_result = scraping.filter_cases_performing_search(found_cases, requeridos, credentials)
 
-    xls_object = { 'Processos analisados': found_cases,
-                   'Processos selecionados': filter_result }
-    
-    xls_dir = 'xls'
+    filter_result = scraping.filter_cases_performing_search(
+        found_cases, requeridos, credentials
+    )
+
+    xls_object = {
+        "Processos analisados": found_cases,
+        "Processos selecionados": filter_result,
+    }
+
+    xls_dir = "xls"
     xls_name = generate_xls_name()
     if not os.path.exists(xls_dir):
         os.mkdir(xls_dir)
@@ -121,7 +126,9 @@ def test_filter_result():
     xls_path = os.path.join(xls_dir, xls_name)
     write_xls(xls_path, xls_object)
 
-    logger.info(f'Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando...')
+    logger.info(
+        f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
+    )
 
 
 def test_specific_url():
@@ -129,14 +136,16 @@ def test_specific_url():
     searcher = BookSearchPage(driver)
 
     url = "https://dje.tjsp.jus.br/cdje/getPaginaDoDiario.do?cdVolume=17&nuDiario=3823&cdCaderno=13&nuSeqpagina=1753"
-    regex = searcher.prepare_keyword_regex(['Oficio Requisitorio'])
+    regex = searcher.prepare_keyword_regex(["Oficio Requisitorio"])
     cases = searcher.find_cases_by_page_url(url, regex)
 
     print(cases)
 
+
 class TestObj:
     def __init__(self, number):
         self.number = number
+
 
 def test_separation():
     data = [
@@ -147,6 +156,5 @@ def test_separation():
         TestObj(7),
     ]
 
-    res = separate_in_sequencial_chunks(data)
+    res = separate_pages_in_sequencial_chunks(data)
     print(res)
-

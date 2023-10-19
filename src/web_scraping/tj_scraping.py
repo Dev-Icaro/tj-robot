@@ -1,10 +1,13 @@
 from time import sleep
 import concurrent.futures
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
 from common.utils.logger import logger
+from common.constants.tj_site import BASE_URL
 from web_scraping.pages.book_search_page import BookSearchPage
-from web_scraping.pages.tj_case_searcher import TjCaseSearcher
+from web_scraping.pages.case_page import CasePage
 from web_scraping.common.utils.book_page import (
     CaseNumberExtractor,
     get_previous_page_url,
@@ -42,23 +45,19 @@ class TjWebScraping:
         return clear_book_cases_result(found_cases)
 
     def filter_cases_performing_search(self, cases, wanted_exectdos):
-        case_searcher = TjCaseSearcher(self.driver)
         filtered_cases = []
 
         wanted_exectdos = [
             remove_accents(exectdo).upper() for exectdo in wanted_exectdos
         ]
 
-        # case_searcher.login(credentials)
-
         cur_case_num = 0
         case_count = len(cases)
         for case_number in cases:
             try:
+                case_page = self._load_case_page(case_number)
                 cur_case_num += 1
                 logger.info(f"Análisando processo {cur_case_num} de {case_count}")
-
-                case_page = case_searcher.load_case_page(case_number)
 
                 if case_page.is_private():
                     continue
@@ -87,6 +86,26 @@ class TjWebScraping:
                 # sleep(2)
 
         return filtered_cases
+
+    def login(self, credentials):
+        login_url = (
+            BASE_URL
+            + "/sajcas/login?service=https%3A%2F%2Fesaj.tjsp.jus.br%2Fesaj%2Fj_spring_cas_security_check"
+        )
+        self.driver.get(login_url)
+
+        input_cnpj = self.wait.until(
+            EC.element_to_be_clickable((By.ID, "usernameForm"))
+        )
+        input_cnpj.send_keys(credentials.cnpj)
+
+        input_pass = self.wait.until(
+            EC.element_to_be_clickable((By.ID, "passwordForm"))
+        )
+        input_pass.send_keys(credentials.password)
+
+        btn_login = self.wait.until(EC.element_to_be_clickable((By.ID, "pbEntrar")))
+        btn_login.click()
 
     def _get_occurrences_pages(self, occurrences_list):
         pages = []
@@ -134,6 +153,11 @@ class TjWebScraping:
                 finished = True
 
         return pdf_urls
+
+    def _load_case_page(self, case_number):
+        case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
+        self.driver.get(case_url)
+        return CasePage(self.driver)
 
 
 def clear_book_cases_result(cases):
