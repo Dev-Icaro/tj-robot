@@ -1,4 +1,5 @@
 from time import sleep
+import concurrent.futures
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
 from common.utils.pdf import fetch_pdf_text_from_url
@@ -94,15 +95,26 @@ class TjWebScraping:
 
         page_count = len(pages_urls)
         cur_page = 0
-        for url in pages_urls:
-            cur_page += 1
-            logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(fetch_pdf_text_from_url, url) for url in pages_urls]
 
-            page_text = fetch_pdf_text_from_url(url)
-            page = BookPage(url, page_text)
-            pages.append(page)
+            for future in concurrent.futures.as_completed(futures):
+                cur_page += 1
+                logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
+                #page = BookPage(url, page_text)
+                #pages.append(page)
 
         return pages
+
+        # for url in pages_urls:
+        #     cur_page += 1
+        #     logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
+
+        #     page_text = fetch_pdf_text_from_url(url)
+        #     page = BookPage(url, page_text)
+        #     pages.append(page)
+
+        # return pages
 
     
     def _extract_pages_urls(self, occurrences_list):
@@ -114,7 +126,7 @@ class TjWebScraping:
 
             if occurrences_list.has_next_page():
                 occurrences_list.next_page()
-                sleep(1)
+                sleep(0.2)
             else:
                 finished = True
 

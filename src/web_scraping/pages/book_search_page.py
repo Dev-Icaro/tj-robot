@@ -5,6 +5,7 @@ from common.utils.logger import logger
 from common.exceptions.app_exception import AppException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support import expected_conditions as EC
 from web_scraping.components.base_component import BaseComponent
 from web_scraping.components.calendar import find_calendar
 from web_scraping.pages.base_page import BasePage
