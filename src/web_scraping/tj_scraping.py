@@ -1,16 +1,11 @@
 from time import sleep
-import concurrent.futures
-import re
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
-from common.utils.logger import logger
 from common.utils.pdf import fetch_pdf_text_from_url
+from common.utils.logger import logger
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.tj_case_searcher import TjCaseSearcher
-from web_scraping.common.utils.book import BookPage, get_previous_page_url, separate_in_sequencial_chunks
-
-
-TJ_SITE_URL = "https://www.tjsp.jus.br/"
+from web_scraping.common.utils.book_page import BookPage, CaseNumberExtractor, get_previous_page_url, separate_pages_in_sequencial_chunks
 
 
 class TjWebScraping:
@@ -18,7 +13,7 @@ class TjWebScraping:
         self.driver = driver
 
     def get_book_cases_by_keywords(
-        self, book_option_text, keywords, start_date, end_date, max_threads=4
+        self, book_option_text, keywords, start_date, end_date
     ):
         search_page = BookSearchPage(self.driver)
         search_page \
@@ -26,83 +21,22 @@ class TjWebScraping:
             .set_keyword(keywords) \
             .set_start_date(start_date) \
             .set_end_date(end_date)
-            
+        
         occurrences_list = search_page.click_search_button()
-        book_pages = self.get_occurrences_pages(occurrences_list)
-        pages_chunks = separate_in_sequencial_chunks(book_pages)
+        book_pages = self._get_occurrences_pages(occurrences_list)
+        pages_chunks = separate_pages_in_sequencial_chunks(book_pages)
 
         found_cases = []
-        keyword_regex = prepare_keyword_regex(keywords)
+        cases_extractor = CaseNumberExtractor(keywords)
         for chunk in pages_chunks:
             text = ''
             for page in chunk:
                 text += page.text
 
-            found_cases += search_page.find_cases_by_keyword(text, keyword_regex)
+            found_cases += cases_extractor.find_cases_by_keyword(text)
         
         return clear_book_cases_result(found_cases)
         
-
-        # with concurrent.futures.ThreadPoolExecutor(
-        #     max_workers=max_threads
-        # ) as executor:
-            
-        #     results = list(
-        #         executor.map(
-        #             lambda args: search_page.find_cases_by_page_url
-        #             (
-        #                 args, 
-        #                 keyword_regex
-        #             ),
-        #             pages_urls,
-        #         )
-        #     )
-
-        # case_count = 0
-        # for result in results:
-        #     case_count += len(result)
-        #     found_cases.append(result)
-
-        #logger.info(f'Foram encontrados {case_count} processos na página {page_count} de resultados do Diário')
-    
-    def get_occurrences_pages(self, occurrences_list):
-        pages = []
-
-        pages_urls = self.extract_pages_urls(occurrences_list)
-        prev_pages_urls = [get_previous_page_url(url) for url in pages_urls]
-        pages_urls += prev_pages_urls
-        pages_urls = remove_duplicate(pages_urls)
-
-        logger.info(f'\nForam extraidos {len(pages_urls)} links de páginas, Iniciando Download.\n')
-
-        page_count = len(pages_urls)
-        cur_page = 0
-        for url in pages_urls:
-            cur_page += 1
-            logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
-
-            page_text = fetch_pdf_text_from_url(url)
-            page = BookPage(url, page_text)
-            pages.append(page)
-
-        return pages
-
-    
-    def extract_pages_urls(self, occurrences_list):
-        pdf_urls = []
-        finished = False
-        while not finished:
-            logger.info(f'Extraindo links das ocorrências da página: {occurrences_list.get_page_number()} ...')
-            pdf_urls += [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
-
-            if occurrences_list.has_next_page():
-                occurrences_list.next_page()
-                sleep(1)
-            else:
-                finished = True
-
-        return pdf_urls
-
     def filter_cases_performing_search(self, cases, wanted_exectdos):
         case_searcher = TjCaseSearcher(self.driver)
         filtered_cases = []
@@ -147,31 +81,49 @@ class TjWebScraping:
                 #sleep(2)
 
         return filtered_cases
+    
+    def _get_occurrences_pages(self, occurrences_list):
+        pages = []
+
+        pages_urls = self._extract_pages_urls(occurrences_list)
+        prev_pages_urls = [get_previous_page_url(url) for url in pages_urls]
+        pages_urls += prev_pages_urls
+        pages_urls = remove_duplicate(pages_urls)
+
+        logger.info(f'\nForam extraidos {len(pages_urls)} links de páginas, Iniciando Download.\n')
+
+        page_count = len(pages_urls)
+        cur_page = 0
+        for url in pages_urls:
+            cur_page += 1
+            logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
+
+            page_text = fetch_pdf_text_from_url(url)
+            page = BookPage(url, page_text)
+            pages.append(page)
+
+        return pages
+
+    
+    def _extract_pages_urls(self, occurrences_list):
+        pdf_urls = []
+        finished = False
+        while not finished:
+            logger.info(f'Extraindo links das ocorrências da página: {occurrences_list.get_page_number()} ...')
+            pdf_urls += [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
+
+            if occurrences_list.has_next_page():
+                occurrences_list.next_page()
+                sleep(1)
+            else:
+                finished = True
+
+        return pdf_urls
 
 
 def clear_book_cases_result(cases):
     logger.info('\n\nEliminando processos duplicados ...\n\n')
     return remove_duplicate(flatten(cases))
-
-
-def prepare_keyword_regex(keywords):
-    for i in range(len(keywords)):
-        keyword = keywords[i]
-
-        while keyword.find(" ") != -1:
-            keyword = keyword.replace(" ", r"\s+")
-            
-        keyword = remove_accents(keyword).lower()
-        keywords[i] = keyword
-
-    union_keyword = "|".join(keywords)
-    return re.compile(
-        union_keyword,
-        re.IGNORECASE | re.UNICODE | re.MULTILINE | re.DOTALL,
-    )
-
-def get_previous_pages_urls(pages_urls):
-    return [get_previous_page_url(url) for url in pages_urls]
 
 
 

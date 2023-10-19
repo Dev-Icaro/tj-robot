@@ -10,7 +10,7 @@ from web_scraping.tj_scraping import TjWebScraping, clear_book_cases_result
 from common.utils.logger import logger
 from common.utils.config_file import read_config_file, validate_config_params
 from common.utils.xls import generate_xls_name, write_xls
-from web_scraping.common.utils.book import separate_in_sequencial_chunks
+from web_scraping.common.utils.book_page import separate_in_sequencial_chunks
 
 def test_scraping_result():
     logger.info("Bem-vindo ao TJ Scraping!")

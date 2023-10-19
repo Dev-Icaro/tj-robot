@@ -23,15 +23,6 @@ class BookSearchPage(BasePage):
             self.driver.get(TJ_BASE_URL + '/cdje/consultaAvancada.do#buscaavancada')
             self.wait_load()
 
-        self.case_number_regex = re.compile(
-            r"\d{7}-\d{2}\.\d{4}\.\d{1,2}\.\d{2,4}\.\d{4}"
-        )
-
-        self.case_blocks_regex = re.compile(
-            r"(?:\n+Processo\s+\d+|^Processo\s+\d+|\n+No\s+\d+|^No\s+\d+)[\s\S]*?(?=\-\s+ADV|\Z)",
-            re.DOTALL | re.MULTILINE | re.UNICODE | re.IGNORECASE,
-        )
-
     book_select_by = (By.XPATH, "/html/body/table[4]/tbody/tr/td/div[3]/table[2]/tbody/tr/td/form/div/table/tbody/tr[2]/td[2]/table/tbody/tr/td/select")
     keyword_by = (By.ID, "procura")
     calendar_start_by = (By.ID, "trigger2")
@@ -76,22 +67,7 @@ class BookSearchPage(BasePage):
         self.driver.find_element(*self.search_by).click()
         return OccurrencesList(self.driver.find_element(*self.results_by))
 
-    def find_cases_by_keyword(self, pdf_text, keyword_regex):
-        if not keyword_regex:
-            raise Exception("Missing arg keywords regex")
-
-        cases_matched = []
-        pdf_text = remove_accents(pdf_text)
-
-        case_blocks = self.case_blocks_regex.findall(pdf_text)
-        for block in case_blocks:
-            block_has_keyword = keyword_regex.search(block)
-            if block_has_keyword:
-                case_number_match = self.case_number_regex.search(block)
-                if case_number_match:
-                    cases_matched.append(case_number_match.group(0))
-
-        return cases_matched
+    
 
     def find_cases_by_page_url(self, pdf_url, keyword_regex):
         pdf_text = ''

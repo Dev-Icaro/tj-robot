@@ -33,7 +33,7 @@ def main():
         scraping = TjWebScraping(driver)
 
         case_numbers = scraping.get_book_cases_by_keywords(
-            book_option_text, keywords, start_date, end_date, max_threads
+            book_option_text, keywords, start_date, end_date
         )
 
         logger.info(f'Foram encontrados {len(case_numbers)} processos na pesquisa.')
