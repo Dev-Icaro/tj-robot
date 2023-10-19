@@ -160,6 +160,14 @@ class TjWebScraping:
         return CasePage(self.driver)
 
 
+class CasesResult:
+    def __init__(self, cases):
+        self.cases = cases
+
+    def save_as_xls(file_path):
+        
+
+
 def clear_book_cases_result(cases):
     logger.info("Eliminando processos duplicados ...\n")
     return remove_duplicate(flatten(cases))

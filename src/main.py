@@ -1,11 +1,8 @@
 from web_scraping.tj_scraping import TjWebScraping
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service as ChromeService
 import sys
 import os
-import logging
 from common.utils.logger import logger
+from common.utils.selenium import init_driver
 from common.utils.config_file import read_config_file, validate_config_params
 from common.utils.xls import generate_xls_name, write_xls
 from tests.test import test_specific_url, test_filter_result, test_separation
@@ -16,13 +13,10 @@ def main():
 
     try:
         config = read_config_file()
-        validate_config_params(config)
-
         start_date = config["data_inicial_pesquisa"]
         end_date = config["data_final_pesquisa"]
         keywords = config["palavras_pesquisa"]
         book_option_text = config["caderno_pesquisa"]
-        max_threads = config["maximo_requisicoes_simultaneas"]
 
         logger.info(
             "Iniciando 1° etapa: Pesquisa dos processos no Diário...\n\n"
@@ -32,10 +26,7 @@ def main():
             f"Data Final: {end_date}"
         )
 
-        os.environ["WDM_LOG"] = str(logging.NOTSET)
-        driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install())
-        )
+        driver = init_driver()
         scraping = TjWebScraping(driver)
 
         case_numbers = scraping.get_book_cases_by_keywords(
@@ -46,12 +37,12 @@ def main():
 
         xls_dir = "xls"
         xls_name = generate_xls_name()
+        xls_path = os.path.join(xls_dir, xls_name)
+
         if not os.path.exists(xls_dir):
             os.mkdir(xls_dir)
 
         xls_object = {"Processos analisados": case_numbers}
-
-        xls_path = os.path.join(xls_dir, xls_name)
         write_xls(xls_path, xls_object)
 
         logger.info(

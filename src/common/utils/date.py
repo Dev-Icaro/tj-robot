@@ -1,11 +1,6 @@
 import datetime
 
 
-class InvalidDateError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-
-
 def is_valid_date(date_str):
     try:
         datetime.datetime.strptime(date_str, "%d/%m/%Y")
