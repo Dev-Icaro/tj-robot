@@ -1,6 +1,8 @@
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 import re
 from common.utils.string import remove_accents
+from common.utils.pdf import fetch_pdf_text_from_url
+
 
 class BookPage:
     def __init__(self, page_url, text):
@@ -11,7 +13,7 @@ class BookPage:
     def extract_page_number(self, page_url):
         parsed_url = urlparse(page_url)
         query_params = parse_qs(parsed_url.query)
-        return int(query_params['nuSeqpagina'][0])
+        return int(query_params["nuSeqpagina"][0])
 
 
 class CaseNumberExtractor:
@@ -27,13 +29,13 @@ class CaseNumberExtractor:
 
         self.keyword_regex = self._prepare_keyword_regex(keywords)
 
-    def _prepare_keyword_regex(keywords):
+    def _prepare_keyword_regex(self, keywords):
         for i in range(len(keywords)):
             keyword = keywords[i]
 
             while keyword.find(" ") != -1:
                 keyword = keyword.replace(" ", r"\s+")
-                
+
             keyword = remove_accents(keyword).lower()
             keywords[i] = keyword
 
@@ -59,7 +61,7 @@ class CaseNumberExtractor:
                     cases_matched.append(case_number_match.group(0))
 
         return cases_matched
-        
+
 
 def get_previous_page_url(url):
     parsed_url = urlparse(url)
@@ -78,9 +80,10 @@ def get_previous_page_url(url):
 
     else:
         return url
-    
+
+
 def separate_pages_in_sequencial_chunks(pages):
-    ordered_pages = sorted(pages, key=lambda obj: obj.number) 
+    ordered_pages = sorted(pages, key=lambda obj: obj.number)
 
     result = []
     chunk = [ordered_pages[0]]
@@ -93,14 +96,12 @@ def separate_pages_in_sequencial_chunks(pages):
         else:
             result.append(chunk)
             chunk = [cur_page]
-    
+
     result.append(chunk)
 
     return result
 
 
-
-        
-        
-
-    
+def fetch_page_from_url(page_url):
+    page_text = fetch_pdf_text_from_url(page_url)
+    return BookPage(page_url, page_text)

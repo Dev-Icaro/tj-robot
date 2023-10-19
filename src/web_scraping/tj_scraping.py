@@ -2,11 +2,15 @@ from time import sleep
 import concurrent.futures
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
-from common.utils.pdf import fetch_pdf_text_from_url
 from common.utils.logger import logger
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.tj_case_searcher import TjCaseSearcher
-from web_scraping.common.utils.book_page import BookPage, CaseNumberExtractor, get_previous_page_url, separate_pages_in_sequencial_chunks
+from web_scraping.common.utils.book_page import (
+    CaseNumberExtractor,
+    get_previous_page_url,
+    separate_pages_in_sequencial_chunks,
+    fetch_page_from_url,
+)
 
 
 class TjWebScraping:
@@ -17,42 +21,43 @@ class TjWebScraping:
         self, book_option_text, keywords, start_date, end_date
     ):
         search_page = BookSearchPage(self.driver)
-        search_page \
-            .select_book(book_option_text) \
-            .set_keyword(keywords) \
-            .set_start_date(start_date) \
-            .set_end_date(end_date)
-        
+        search_page.select_book(book_option_text).set_keyword(keywords).set_start_date(
+            start_date
+        ).set_end_date(end_date)
+
         occurrences_list = search_page.click_search_button()
         book_pages = self._get_occurrences_pages(occurrences_list)
         pages_chunks = separate_pages_in_sequencial_chunks(book_pages)
 
+        logger.info("\nExtraindo números de processos das páginas ...")
         found_cases = []
         cases_extractor = CaseNumberExtractor(keywords)
         for chunk in pages_chunks:
-            text = ''
+            text = ""
             for page in chunk:
                 text += page.text
 
             found_cases += cases_extractor.find_cases_by_keyword(text)
-        
+
         return clear_book_cases_result(found_cases)
-        
+
     def filter_cases_performing_search(self, cases, wanted_exectdos):
         case_searcher = TjCaseSearcher(self.driver)
         filtered_cases = []
 
-        wanted_exectdos = [remove_accents(exectdo).upper() for exectdo in wanted_exectdos]
+        wanted_exectdos = [
+            remove_accents(exectdo).upper() for exectdo in wanted_exectdos
+        ]
 
-        #case_searcher.login(credentials)
+        # case_searcher.login(credentials)
 
         cur_case_num = 0
         case_count = len(cases)
         for case_number in cases:
             try:
                 cur_case_num += 1
-                logger.info(f'Análisando processo {cur_case_num} de {case_count}')
-                
+                logger.info(f"Análisando processo {cur_case_num} de {case_count}")
+
                 case_page = case_searcher.load_case_page(case_number)
 
                 if case_page.is_private():
@@ -79,10 +84,10 @@ class TjWebScraping:
 
             finally:
                 self.driver.delete_all_cookies()
-                #sleep(2)
+                # sleep(2)
 
         return filtered_cases
-    
+
     def _get_occurrences_pages(self, occurrences_list):
         pages = []
 
@@ -91,42 +96,40 @@ class TjWebScraping:
         pages_urls += prev_pages_urls
         pages_urls = remove_duplicate(pages_urls)
 
-        logger.info(f'\nForam extraidos {len(pages_urls)} links de páginas, Iniciando Download.\n')
+        logger.info(
+            f"\nForam extraidos {len(pages_urls)} links de páginas, Iniciando Download.\n"
+        )
 
         page_count = len(pages_urls)
         cur_page = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            futures = [executor.submit(fetch_pdf_text_from_url, url) for url in pages_urls]
+            futures = [executor.submit(fetch_page_from_url, url) for url in pages_urls]
 
             for future in concurrent.futures.as_completed(futures):
                 cur_page += 1
-                logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
-                #page = BookPage(url, page_text)
-                #pages.append(page)
+                logger.info(
+                    f"Efetuando download das páginas do diário ... {cur_page} de {page_count}"
+                )
+                page = future.result()
+                pages.append(page)
 
         return pages
 
-        # for url in pages_urls:
-        #     cur_page += 1
-        #     logger.info(f'Efetuando download das páginas do diário ... {cur_page} de {page_count}')
-
-        #     page_text = fetch_pdf_text_from_url(url)
-        #     page = BookPage(url, page_text)
-        #     pages.append(page)
-
-        # return pages
-
-    
     def _extract_pages_urls(self, occurrences_list):
         pdf_urls = []
         finished = False
         while not finished:
-            logger.info(f'Extraindo links das ocorrências da página: {occurrences_list.get_page_number()} ...')
-            pdf_urls += [occurrence.get_pdf_url() for occurrence in occurrences_list.get_occurences()]
+            logger.info(
+                f"Extraindo links das ocorrências da página: {occurrences_list.get_page_number()} ..."
+            )
+            pdf_urls += [
+                occurrence.get_pdf_url()
+                for occurrence in occurrences_list.get_occurences()
+            ]
 
             if occurrences_list.has_next_page():
                 occurrences_list.next_page()
-                sleep(0.2)
+                sleep(0.3)
             else:
                 finished = True
 
@@ -134,9 +137,5 @@ class TjWebScraping:
 
 
 def clear_book_cases_result(cases):
-    logger.info('\n\nEliminando processos duplicados ...\n\n')
+    logger.info("Eliminando processos duplicados ...\n")
     return remove_duplicate(flatten(cases))
-
-
-
-    
