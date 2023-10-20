@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from common.utils.string import remove_accents
+from web_scraping.common.exceptions.invalid_page_exception import InvalidPageException
 from web_scraping.pages.base_page import BasePage
 from web_scraping.components.base_component import BaseComponent
 import re
@@ -12,10 +13,14 @@ class CasePage(BasePage):
     def __init__(self, driver):
         super().__init__(driver)
 
+        if not "processo.codigo" in self.driver.current_url:
+            raise InvalidPageException("Esta não é a página de um processo")
+
     empty_incident_by = (By.CSS_SELECTOR, "td#processoSemIncidentes")
     participants_by = (By.CSS_SELECTOR, "#tablePartesPrincipais tr.fundoClaro")
     private_by = (By.ID, "popupModalDiv")
     class_by = (By.ID, "classeProcesso")
+    main_case_by = (By.CLASS_NAME, "processoPrinc")
     judgment_execution_by = (
         By.CSS_SELECTOR,
         "#containerDadosPrincipaisProcesso .row:nth-child(1) .unj-larger",
@@ -55,6 +60,17 @@ class CasePage(BasePage):
         except NoSuchElementException:
             return False
 
+    def navigate_to_main_case(self):
+        self.driver.find_element(*self.main_case_by).click()
+        return CasePage(self.driver)
+
+    def has_main_case(self):
+        try:
+            self.driver.find_element(*self.main_case_by)
+            return True
+        except NoSuchElementException:
+            return False
+
     def get_class(self):
         try:
             return self.driver.find_element(*self.class_by).text
@@ -83,9 +99,3 @@ class Participant(BaseComponent):
                 part_name = part_name[:-1]
 
             return remove_accents(part_name).upper()
-
-
-class TjCredentials:
-    def __init__(self, cnpj, password):
-        self.cnpj = cnpj
-        self.password = password

@@ -5,7 +5,6 @@ import pandas as pd
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from web_scraping.pages.book_search_page import BookSearchPage
-from web_scraping.pages.case_page import TjCredentials
 from web_scraping.tj_scraping import TjWebScraping, clear_book_cases_result
 from common.utils.logger import logger
 from common.utils.config_file import read_config_file, validate_config_params
@@ -94,12 +93,14 @@ def test_scraping_result():
 def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
 
-    df = pd.read_excel("processos_analisados.xlsx")
-    found_cases = df["Processos analisados"].to_list()
+    # df = pd.read_excel("processos_analisados.xlsx")
+    # found_cases = df["Processos analisados"].to_list()
+    found_cases = ["0019690-51.2003.8.26.0053"]
 
     driver = init_driver()
     scraping = TjWebScraping(driver)
 
+    scraping.login("28992745893", "Alice17*")
     filter_result = scraping.filter_cases_performing_search(found_cases, requeridos)
 
     xls_object = {

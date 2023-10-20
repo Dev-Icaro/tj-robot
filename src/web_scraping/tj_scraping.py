@@ -6,11 +6,16 @@ from selenium.webdriver.common.by import By
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
 from common.utils.logger import logger
-from common.constants.tj_site import BASE_URL
+from common.constants.tj_site import BASE_URL, LOGIN_URL
 from common.utils.xls import generate_xls_name, write_xls
 from common.exceptions.app_exception import AppException
+from web_scraping.common.exceptions.invalid_page_exception import (
+    InvalidPageException,
+)
+from web_scraping.pages.case_search_page import CaseSearchPage
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.case_page import CasePage
+from web_scraping.pages.login_page import LoginPage
 from web_scraping.common.utils.book_page import (
     CaseNumberExtractor,
     get_previous_page_url,
@@ -58,9 +63,10 @@ class TjWebScraping:
         case_count = len(cases)
         for case_number in cases:
             try:
-                case_page = self.load_case_page(case_number)
                 cur_case_num += 1
                 logger.info(f"Análisando processo {cur_case_num} de {case_count} ...")
+
+                case_page = self.load_case_page(case_number)
 
                 if case_page.is_private():
                     continue
@@ -68,6 +74,9 @@ class TjWebScraping:
                 exectdo_name = case_page.get_exectdo_name()
                 if exectdo_name not in wanted_exectdos:
                     continue
+
+                if case_page.has_main_case():
+                    case_page.navigate_to_main_case()
 
                 filtered_cases.append(case_number)
 
@@ -84,31 +93,14 @@ class TjWebScraping:
                 # if not case_page.has_incident():
                 #     continue
 
+            except InvalidPageException:
+                continue
+
             finally:
                 self.driver.delete_all_cookies()
                 sleep(0.3)
 
         return filtered_cases
-
-    def login(self, credentials):
-        login_url = (
-            BASE_URL
-            + "/sajcas/login?service=https%3A%2F%2Fesaj.tjsp.jus.br%2Fesaj%2Fj_spring_cas_security_check"
-        )
-        self.driver.get(login_url)
-
-        input_cnpj = self.wait.until(
-            EC.element_to_be_clickable((By.ID, "usernameForm"))
-        )
-        input_cnpj.send_keys(credentials.cnpj)
-
-        input_pass = self.wait.until(
-            EC.element_to_be_clickable((By.ID, "passwordForm"))
-        )
-        input_pass.send_keys(credentials.password)
-
-        btn_login = self.wait.until(EC.element_to_be_clickable((By.ID, "pbEntrar")))
-        btn_login.click()
 
     def _get_occurrences_pages(self, occurrences_list):
         pages = []
@@ -160,7 +152,17 @@ class TjWebScraping:
     def load_case_page(self, case_number):
         case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
         self.driver.get(case_url)
-        return CasePage(self.driver)
+
+        if not "processo.codigo" in self.driver.current_url:
+            search_page = CaseSearchPage(self.driver)
+            return search_page.search_case(case_number)
+        else:
+            return CasePage(self.driver)
+
+    def login(self, username, password):
+        self.driver.get(LOGIN_URL)
+        login_page = LoginPage(self.driver)
+        login_page.login_as(username, password)
 
 
 def clear_book_cases_result(cases):
