@@ -39,7 +39,7 @@ class CasePage(BasePage):
                 continue
 
     def get_participants(self):
-        participants = self.driver.find_elements(self.participants_by)
+        participants = self.driver.find_elements(*self.participants_by)
         return [Participant(participant) for participant in participants]
 
     def get_judgment_execution(self):

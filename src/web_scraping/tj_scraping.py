@@ -1,3 +1,4 @@
+import os
 from time import sleep
 import concurrent.futures
 from selenium.webdriver.support import expected_conditions as EC
@@ -6,6 +7,8 @@ from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents
 from common.utils.logger import logger
 from common.constants.tj_site import BASE_URL
+from common.utils.xls import generate_xls_name, write_xls
+from common.exceptions.app_exception import AppException
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.case_page import CasePage
 from web_scraping.common.utils.book_page import (
@@ -55,9 +58,9 @@ class TjWebScraping:
         case_count = len(cases)
         for case_number in cases:
             try:
-                case_page = self._load_case_page(case_number)
+                case_page = self.load_case_page(case_number)
                 cur_case_num += 1
-                logger.info(f"Análisando processo {cur_case_num} de {case_count}")
+                logger.info(f"Análisando processo {cur_case_num} de {case_count} ...")
 
                 if case_page.is_private():
                     continue
@@ -83,7 +86,7 @@ class TjWebScraping:
 
             finally:
                 self.driver.delete_all_cookies()
-                # sleep(2)
+                sleep(0.3)
 
         return filtered_cases
 
@@ -154,20 +157,34 @@ class TjWebScraping:
 
         return pdf_urls
 
-    def _load_case_page(self, case_number):
+    def load_case_page(self, case_number):
         case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
         self.driver.get(case_url)
         return CasePage(self.driver)
 
 
-class CasesResult:
-    def __init__(self, cases):
-        self.cases = cases
-
-    def save_as_xls(file_path):
-        
-
-
 def clear_book_cases_result(cases):
-    logger.info("Eliminando processos duplicados ...\n")
+    logger.info("Eliminando processos duplicados ...")
     return remove_duplicate(flatten(cases))
+
+
+def save_result_to_xls_folder(analyzed_cases, filtered_cases):
+    xls_dir = "xls"
+    xls_name = generate_xls_name()
+    xls_path = os.path.join(xls_dir, xls_name)
+
+    if not os.path.exists(xls_dir):
+        os.mkdir(xls_dir)
+
+    while len(analyzed_cases) > len(filtered_cases):
+        filtered_cases.append("")
+
+    xls_object = {
+        "Processos analisados": analyzed_cases,
+        "Processos selecionados": filtered_cases,
+    }
+
+    write_xls(xls_path, xls_object)
+    logger.info(
+        f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
+    )

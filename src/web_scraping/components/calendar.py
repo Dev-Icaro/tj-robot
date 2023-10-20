@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
 from common.utils.string import extract_letters, extract_numbers
 from common.exceptions.app_exception import AppException
 from web_scraping.components.base_component import BaseComponent
@@ -22,16 +21,19 @@ calendar_months = {
     "Dezembro": 12,
 }
 
+
 class Calendar(BaseComponent):
     def __init__(self, root):
         super().__init__(root)
         if root is None:
-            raise AppException('Elemento calendário inválido')
+            raise AppException("Elemento calendário inválido")
 
-        self.navigation = CalendarNavigation(self.root.find_element(By.CLASS_NAME, "headrow"))        
+        self.navigation = CalendarNavigation(
+            self.root.find_element(By.CLASS_NAME, "headrow")
+        )
 
         self.title_by = (By.CLASS_NAME, "title")
-        self.days_by = (By.CSS_SELECTOR, ''"tbody > tr.daysrow td.day")
+        self.days_by = (By.CSS_SELECTOR, "" "tbody > tr.daysrow td.day")
 
     def set_date(self, date):
         date_obj = datetime.strptime(date, "%d/%m/%Y")
@@ -52,7 +54,7 @@ class Calendar(BaseComponent):
         actual_year = int(self.get_year())
         if actual_year == year:
             return
-        
+
         year_dif = abs(year - actual_year)
         while year_dif > 0:
             if actual_year < year:
@@ -66,7 +68,7 @@ class Calendar(BaseComponent):
         actual_month = int(calendar_months[self.get_month()])
         if actual_month == month:
             return
-        
+
         month_dif = abs(month - actual_month)
         while month_dif > 0:
             if actual_month < month:
@@ -88,17 +90,15 @@ class Calendar(BaseComponent):
                 else:
                     day.click()
                     return
-                
+
 
 class CalendarNavigation(BaseComponent):
     def __init__(self, root):
         super().__init__(root)
         if self.root is None:
-            raise AppException('Navegação do calendário não encontrada')
+            raise AppException("Navegação do calendário não encontrada")
 
-        self.buttons = self.root.find_elements(
-            By.CSS_SELECTOR, "td.button.nav"
-        )
+        self.buttons = self.root.find_elements(By.CSS_SELECTOR, "td.button.nav")
 
     def locate_btn_by_text(self, text):
         for btn in self.buttons:

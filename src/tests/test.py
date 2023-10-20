@@ -10,6 +10,7 @@ from web_scraping.tj_scraping import TjWebScraping, clear_book_cases_result
 from common.utils.logger import logger
 from common.utils.config_file import read_config_file, validate_config_params
 from common.utils.xls import generate_xls_name, write_xls
+from common.utils.selenium import init_driver
 from web_scraping.common.utils.book_page import separate_pages_in_sequencial_chunks
 
 
@@ -94,24 +95,12 @@ def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
 
     df = pd.read_excel("processos_analisados.xlsx")
-    found_cases = df["processos_analisados"].to_list()
+    found_cases = df["Processos analisados"].to_list()
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--disable-cookies")
+    driver = init_driver()
+    scraping = TjWebScraping(driver)
 
-    browser = webdriver.Chrome(
-        options=chrome_options, service=ChromeService(ChromeDriverManager().install())
-    )
-    scraping = TjWebScraping(browser)
-
-    config = read_config_file()
-    cnpj = config["cnpj_tj"]
-    password = config["senha_tj"]
-    credentials = TjCredentials(cnpj, password)
-
-    filter_result = scraping.filter_cases_performing_search(
-        found_cases, requeridos, credentials
-    )
+    filter_result = scraping.filter_cases_performing_search(found_cases, requeridos)
 
     xls_object = {
         "Processos analisados": found_cases,

@@ -1,12 +1,7 @@
-from common.utils.string import remove_accents
-from common.utils.pdf import fetch_pdf_text_from_url
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from common.utils.logger import logger
 from common.exceptions.app_exception import AppException
 from common.constants.tj_site import BASE_URL
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as EC
 from web_scraping.components.base_component import BaseComponent
 from web_scraping.components.calendar import find_calendar
 from web_scraping.pages.base_page import BasePage
@@ -71,23 +66,6 @@ class BookSearchPage(BasePage):
         self.driver.find_element(*self.search_by).click()
         return OccurrencesList(self.driver.find_element(*self.results_by))
 
-    def find_cases_by_page_url(self, pdf_url, keyword_regex):
-        pdf_text = ""
-
-        try:
-            previous_page_url = get_previous_page_url(pdf_url)
-            previous_page_text = fetch_pdf_text_from_url(previous_page_url)
-            actual_page_text = fetch_pdf_text_from_url(pdf_url)
-
-            pdf_text = previous_page_text + actual_page_text
-
-            cases = self.find_cases_by_keyword(pdf_text, keyword_regex)
-
-            return cases
-
-        except Exception as e:
-            logger.error(f"Erro ao obter os processos da url: {pdf_url}", e)
-
 
 class OccurrencesList(BaseComponent):
     def __init__(self, root):
@@ -127,22 +105,3 @@ class Occurrence(BaseComponent):
         endpoint = re.findall(regex, anchor.get_attribute("onclick"))[0]
 
         return BASE_URL + endpoint.replace("consultaSimples", "getPaginaDoDiario")
-
-
-def get_previous_page_url(url):
-    parsed_url = urlparse(url)
-    query_params = parse_qs(parsed_url.query)
-
-    if "nuSeqpagina" in query_params:
-        current_nuSeqpagina = int(query_params["nuSeqpagina"][0])
-        new_nuSeqpagina = current_nuSeqpagina - 1
-
-        query_params["nuSeqpagina"] = [str(new_nuSeqpagina)]
-
-        updated_query = urlencode(query_params, doseq=True)
-        new_url = urlunparse(parsed_url._replace(query=updated_query))
-
-        return new_url
-
-    else:
-        return url

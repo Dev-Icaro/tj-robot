@@ -1,10 +1,9 @@
-from web_scraping.tj_scraping import TjWebScraping
+from web_scraping.tj_scraping import TjWebScraping, save_result_to_xls_folder
 import sys
 import os
 from common.utils.logger import logger
 from common.utils.selenium import init_driver
-from common.utils.config_file import read_config_file, validate_config_params
-from common.utils.xls import generate_xls_name, write_xls
+from common.utils.config_file import read_config_file
 from tests.test import test_specific_url, test_filter_result, test_separation
 
 
@@ -33,19 +32,8 @@ def main():
             book_option_text, keywords, start_date, end_date
         )
 
-        logger.info(f"Foram encontrados {len(case_numbers)} processos na pesquisa.")
-
-        xls_dir = "xls"
-        xls_name = generate_xls_name()
-        xls_path = os.path.join(xls_dir, xls_name)
-
-        if not os.path.exists(xls_dir):
-            os.mkdir(xls_dir)
-
-        xls_object = {"Processos analisados": case_numbers}
-        write_xls(xls_path, xls_object)
-
         logger.info(
+            f"Foram encontrados {len(case_numbers)} processos na pesquisa.\n"
             f"Iniciando 2° etapa: Filtragem dos processos encontrados no Diário..."
         )
 
@@ -54,16 +42,7 @@ def main():
             case_numbers, wanted_exectdos
         )
 
-        xls_object = {
-            "Processos analisados": case_numbers,
-            "Processos selecionados": filter_result,
-        }
-
-        write_xls(xls_path, xls_object)
-
-        logger.info(
-            f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
-        )
+        save_result_to_xls_folder(case_numbers, filter_result)
 
     except Exception as e:
         logger.error(e)
@@ -74,8 +53,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
     # test_specific_url()
     # test_scraping_result()
-    # test_filter_result()
+    test_filter_result()
     # test_separation()
