@@ -34,7 +34,7 @@ def main():
 
         logger.info(
             f"Foram encontrados {len(case_numbers)} processos na pesquisa.\n"
-            f"Iniciando 2° etapa: Filtragem dos processos encontrados no Diário..."
+            f"Iniciando 2° etapa: Extração dos precatórios dos processos encontrados..."
         )
 
         wanted_exectdos = config["requeridos_filtro"]
@@ -42,11 +42,9 @@ def main():
         password = config["senha_tj"]
 
         scraping.login(user, password)
-        filter_result = scraping.filter_cases_performing_search(
-            case_numbers, wanted_exectdos
-        )
+        precatorys = scraping.find_cases_precatorys(case_numbers, wanted_exectdos)
 
-        save_result_to_xls_folder(case_numbers, filter_result)
+        save_result_to_xls_folder(case_numbers, precatorys)
 
     except Exception as e:
         logger.error(e)
@@ -57,8 +55,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     # test_specific_url()
     # test_scraping_result()
-    test_filter_result()
+    # test_filter_result()
 # test_separation()

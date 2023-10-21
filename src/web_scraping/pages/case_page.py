@@ -1,8 +1,10 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.relative_locator import locate_with
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from common.utils.string import remove_accents
+from common.constants.tj_site import BASE_URL
 from web_scraping.common.exceptions.invalid_page_exception import InvalidPageException
 from web_scraping.pages.base_page import BasePage
 from web_scraping.components.base_component import BaseComponent
@@ -16,7 +18,6 @@ class CasePage(BasePage):
         if not "processo.codigo" in self.driver.current_url:
             raise InvalidPageException("Esta não é a página de um processo")
 
-    empty_incident_by = (By.CSS_SELECTOR, "td#processoSemIncidentes")
     participants_by = (By.CSS_SELECTOR, "#tablePartesPrincipais tr.fundoClaro")
     private_by = (By.ID, "popupModalDiv")
     class_by = (By.ID, "classeProcesso")
@@ -25,15 +26,14 @@ class CasePage(BasePage):
         By.CSS_SELECTOR,
         "#containerDadosPrincipaisProcesso .row:nth-child(1) .unj-larger",
     )
+    incidents_by = (By.CSS_SELECTOR, "a.incidente")
 
     def has_incident(self):
         try:
-            empty_incident_ele = WebDriverWait(self, 2).until
-            (EC.presence_of_element_located(self.empty_incident_by))
-            if empty_incident_ele:
-                return False
-        except:
+            self.get_incidents()
             return True
+        except NoSuchElementException:
+            return False
 
     def get_exectdo_name(self):
         participants = self.get_participants()
@@ -77,6 +77,10 @@ class CasePage(BasePage):
         except:
             pass
 
+    def get_incidents(self):
+        incidents = self.driver.find_elements(*self.incidents_by)
+        return [Incident(incident) for incident in incidents]
+
 
 class Participant(BaseComponent):
     def __init__(self, root):
@@ -99,3 +103,16 @@ class Participant(BaseComponent):
                 part_name = part_name[:-1]
 
             return remove_accents(part_name).upper()
+
+
+class Incident(BaseComponent):
+    def __init__(self, root):
+        super().__init__(root)
+        self.case_class = self.root.text
+        self.link = self.root.get_attribute("href")
+
+    def get_case_link(self):
+        return self.link
+
+    def get_class(self):
+        return self.case_class

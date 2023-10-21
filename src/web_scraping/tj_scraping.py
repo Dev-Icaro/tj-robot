@@ -52,7 +52,7 @@ class TjWebScraping:
 
         return clear_book_cases_result(found_cases)
 
-    def filter_cases_performing_search(self, cases, wanted_exectdos):
+    def find_cases_precatorys(self, cases, wanted_exectdos):
         filtered_cases = []
 
         wanted_exectdos = [
@@ -71,27 +71,18 @@ class TjWebScraping:
                 if case_page.is_private():
                     continue
 
+                if case_page.has_main_case():
+                    case_page = case_page.navigate_to_main_case()
+
                 exectdo_name = case_page.get_exectdo_name()
                 if exectdo_name not in wanted_exectdos:
                     continue
 
-                if case_page.has_main_case():
-                    case_page.navigate_to_main_case()
+                if not case_page.has_incident():
+                    continue
 
-                filtered_cases.append(case_number)
-
-                # try:
-                #     judgment_execution = case_page.get_judgment_execution()
-                #     if 'Cumprimento de Sentença' in judgment_execution:
-                #         filtered_cases.append(case_number)
-                # except:
-                #     case_class = case_page.get_class()
-                #     if 'Fazenda' in case_class:
-                #         filtered_cases.append(case_number)
-
-                # 1
-                # if not case_page.has_incident():
-                #     continue
+                precatorys = self.get_precatorys(case_page, [])
+                print(precatorys)
 
             except InvalidPageException:
                 continue
@@ -101,6 +92,42 @@ class TjWebScraping:
                 sleep(0.3)
 
         return filtered_cases
+
+    def get_precatorys(self, case_page: CasePage, precatorys):
+        if not case_page.has_incident():
+            return precatorys
+
+        incidents = case_page.get_incidents()
+        for incident in incidents:
+            incident_class = incident.get_class()
+
+            if "Cumprimento de Sentença" in incident_class:
+                incident_case_link = incident.get_case_link()
+                self.driver.get(incident_case_link)
+                self.get_precatorys(CasePage(self.driver), precatorys)
+            elif "Precatório" in incident_class:
+                precatorys.append(incident.get_case_link())
+            else:
+                continue
+
+        return precatorys
+
+    def load_case_page(self, case_number):
+        case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
+        self.driver.get(case_url)
+
+        if not "processo.codigo" in self.driver.current_url:
+            # Will enter in this block if get some error to get the case page by url
+            # so we try another method.
+            search_page = CaseSearchPage(self.driver)
+            return search_page.search_case(case_number)
+        else:
+            return CasePage(self.driver)
+
+    def login(self, username, password):
+        self.driver.get(LOGIN_URL)
+        login_page = LoginPage(self.driver)
+        login_page.login_as(username, password)
 
     def _get_occurrences_pages(self, occurrences_list):
         pages = []
@@ -148,21 +175,6 @@ class TjWebScraping:
                 finished = True
 
         return pdf_urls
-
-    def load_case_page(self, case_number):
-        case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
-        self.driver.get(case_url)
-
-        if not "processo.codigo" in self.driver.current_url:
-            search_page = CaseSearchPage(self.driver)
-            return search_page.search_case(case_number)
-        else:
-            return CasePage(self.driver)
-
-    def login(self, username, password):
-        self.driver.get(LOGIN_URL)
-        login_page = LoginPage(self.driver)
-        login_page.login_as(username, password)
 
 
 def clear_book_cases_result(cases):

@@ -101,7 +101,7 @@ def test_filter_result():
     scraping = TjWebScraping(driver)
 
     scraping.login("28992745893", "Alice17*")
-    filter_result = scraping.filter_cases_performing_search(found_cases, requeridos)
+    filter_result = scraping.find_cases_precatorys(found_cases, requeridos)
 
     xls_object = {
         "Processos analisados": found_cases,
