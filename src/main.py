@@ -48,10 +48,10 @@ def main():
 
     except Exception as e:
         logger.error(e)
-        sys.exit()
 
     finally:
         driver.quit()
+        sys.exit("Finalizando ... Até mais!")
 
 
 if __name__ == "__main__":

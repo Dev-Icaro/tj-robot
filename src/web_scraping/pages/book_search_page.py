@@ -14,7 +14,8 @@ class BookSearchPage(BasePage):
 
         if not "Consulta de Diário da Justiça Eletrônico" in self.driver.title:
             self.driver.get(BASE_URL + "/cdje/consultaAvancada.do#buscaavancada")
-            self.wait_load()
+
+        self.wait_load()
 
     book_select_by = (
         By.XPATH,

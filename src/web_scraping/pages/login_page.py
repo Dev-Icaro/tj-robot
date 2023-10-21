@@ -10,24 +10,21 @@ class LoginPage(BasePage):
 
         if not "sajcas/login" in driver.current_url:
             self.driver.get()
-            self.wait_load()
+
+        self.wait_load()
 
     username_by = (By.ID, "usernameForm")
     password_by = (By.ID, "passwordForm")
     login_button_by = (By.ID, "pbEntrar")
 
     def type_username(self, username):
-        self.wait.until(EC.presence_of_element_located(self.username_by)).send_keys(
-            username
-        )
+        self.driver.find_element(*self.username_by).send_keys(username)
 
     def type_password(self, password):
-        self.wait.until(EC.presence_of_element_located(self.password_by)).send_keys(
-            password
-        )
+        self.driver.find_element(*self.password_by).send_keys(password)
 
     def submit_login(self):
-        self.wait.until(EC.element_to_be_clickable(self.login_button_by)).click()
+        self.driver.find_element(self.login_button_by).click()
 
     def login_as(self, username, password):
         self.type_username(username)
