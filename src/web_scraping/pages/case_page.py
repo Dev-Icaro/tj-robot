@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.relative_locator import locate_with
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-from common.utils.string import remove_accents
+from common.utils.string import remove_accents, upper_no_accent
 from common.constants.tj_site import BASE_URL
 from web_scraping.common.exceptions import InvalidPageException
 from web_scraping.pages.base_page import BasePage
@@ -27,13 +27,10 @@ class CasePage(BasePage):
         "#containerDadosPrincipaisProcesso .row:nth-child(1) .unj-larger",
     )
     incidents_by = (By.CSS_SELECTOR, "a.incidente")
+    situation_by = (By.CLASS_NAME, "unj-tag")
 
     def has_incident(self):
-        try:
-            self.get_incidents()
-            return True
-        except NoSuchElementException:
-            return False
+        return True if len(self.get_incidents()) > 0 else False
 
     def get_exectdo_name(self):
         participants = self.get_participants()
@@ -81,6 +78,9 @@ class CasePage(BasePage):
         incidents = self.driver.find_elements(*self.incidents_by)
         return [Incident(incident) for incident in incidents]
 
+    def get_situation(self):
+        return self.driver.find_elements(*self.situation_by)[0].text
+
 
 class Participant(BaseComponent):
     def __init__(self, root):
@@ -102,7 +102,7 @@ class Participant(BaseComponent):
             if part_name.endswith("\n"):
                 part_name = part_name[:-1]
 
-            return remove_accents(part_name).upper()
+            return upper_no_accent(part_name)
 
 
 class Incident(BaseComponent):

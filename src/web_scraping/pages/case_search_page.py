@@ -1,5 +1,6 @@
 from web_scraping.pages.base_page import BasePage
 from web_scraping.pages.case_page import CasePage
+from common.constants.tj_site import CASE_SEARCH_URL
 from common.utils.string import extract_numbers
 from common.utils.selenium import clear_and_type
 from selenium.webdriver.common.by import By
@@ -9,6 +10,9 @@ from selenium.webdriver.support import expected_conditions as EC
 class CaseSearchPage(BasePage):
     def __init__(self, driver):
         super().__init__(driver)
+
+        if not "cpopg/open.do" in self.driver.current_url:
+            self.driver.get(CASE_SEARCH_URL)
 
     case_number_input_by = (By.ID, "numeroDigitoAnoUnificado")
     forum_number_input_by = (By.ID, "foroNumeroUnificado")

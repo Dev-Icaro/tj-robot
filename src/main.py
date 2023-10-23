@@ -42,9 +42,14 @@ def main():
         password = config["senha_tj"]
 
         scraping.login(user, password)
-        precatorys = scraping.find_cases_precatorys(case_numbers, wanted_exectdos)
+        interesting_cases = scraping.find_interesting_cases(
+            case_numbers, wanted_exectdos
+        )
 
-        save_result_to_xls_folder(case_numbers, precatorys)
+        precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
+        enforcement_judgment = interesting_cases.get_enforcement_judgment_urls()
+
+        save_result_to_xls_folder(case_numbers, interesting_cases)
 
     except Exception as e:
         logger.error(e)
@@ -55,8 +60,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
     # test_specific_url()
     # test_scraping_result()
-    # test_filter_result()
+    test_filter_result()
     # test_separation()

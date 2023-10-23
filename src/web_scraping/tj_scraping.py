@@ -5,9 +5,9 @@ import concurrent.futures
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from common.utils.array import remove_duplicate, flatten
-from common.utils.string import remove_accents
+from common.utils.string import remove_accents, upper_no_accent
 from common.utils.logger import logger
-from common.constants.tj_site import BASE_URL, LOGIN_URL
+from common.constants.tj_site import CASE_SEARCH_URL, LOGIN_URL
 from common.utils.xls import generate_xls_name, write_xls
 from common.exceptions.app_exception import AppException
 from web_scraping.common.exceptions import (
@@ -24,6 +24,26 @@ from web_scraping.common.utils.book_page import (
     separate_pages_in_sequencial_chunks,
     fetch_page_from_url,
 )
+
+
+class CasesResult:
+    def __init__(self):
+        self.precatorys = []
+        self.enforcement_judgment = []
+
+    def add_precatory_url(self, case_url):
+        if not case_url in self.precatorys:
+            self.precatorys.append(case_url)
+
+    def add_enforcement_judgment_url(self, case_url):
+        if not case_url in self.enforcement_judgment:
+            self.enforcement_judgment.append(case_url)
+
+    def get_precatory_urls(self):
+        return self.precatorys
+
+    def get_enforcement_judgment_urls(self):
+        return self.enforcement_judgment
 
 
 class TjWebScraping:
@@ -52,13 +72,9 @@ class TjWebScraping:
 
         return clear_book_cases_result(found_cases)
 
-    def find_cases_precatorys(self, cases, wanted_exectdos):
-        filtered_cases = []
-
-        wanted_exectdos = [
-            remove_accents(exectdo).upper() for exectdo in wanted_exectdos
-        ]
-
+    def find_interesting_cases(self, cases, wanted_exectdos):
+        wanted_exectdos = [upper_no_accent(exectdo) for exectdo in wanted_exectdos]
+        interesting_cases = CasesResult()
         cur_case_num = 0
         case_count = len(cases)
         for case_number in cases:
@@ -81,8 +97,9 @@ class TjWebScraping:
                 if not case_page.has_incident():
                     continue
 
-                precatorys = self.get_precatorys(case_page, [])
-                print(precatorys)
+                interesting_cases = self.get_interesting_cases(
+                    case_page, interesting_cases
+                )
 
             except InvalidPageException:
                 continue
@@ -91,38 +108,37 @@ class TjWebScraping:
                 self.driver.delete_all_cookies()
                 sleep(0.3)
 
-        return filtered_cases
+        return interesting_cases
 
-    def get_precatorys(self, case_page: CasePage, precatorys):
+    def get_interesting_cases(
+        self, case_page: CasePage, interesting_cases: CasesResult
+    ):
         if not case_page.has_incident():
-            return precatorys
+            if upper_no_accent("Cumprimento de Sentença") in upper_no_accent(
+                case_page.get_judgment_execution()
+            ):
+                interesting_cases.add_enforcement_judgment_url(self.driver.current_url)
 
-        incidents = case_page.get_incidents()
-        for incident in incidents:
-            incident_class = incident.get_class()
+        else:
+            incidents = case_page.get_incidents()
+            for incident in incidents:
+                incident_class = upper_no_accent(incident.get_class())
 
-            if "Cumprimento de Sentença" in incident_class:
-                incident_case_link = incident.get_case_link()
-                self.driver.get(incident_case_link)
-                self.get_precatorys(CasePage(self.driver), precatorys)
-            elif "Precatório" in incident_class:
-                precatorys.append(incident.get_case_link())
-            else:
-                continue
+                if upper_no_accent("Cumprimento de Sentença") in incident_class:
+                    incident_case_link = incident.get_case_link()
+                    self.driver.get(incident_case_link)
+                    self.get_interesting_cases(CasePage(self.driver), interesting_cases)
+                elif upper_no_accent("Precatório") in incident_class:
+                    interesting_cases.add_precatory_url(incident.get_case_link())
+                else:
+                    continue
 
-        return precatorys
+        return interesting_cases
 
     def load_case_page(self, case_number):
-        case_url = BASE_URL + "/cpopg/show.do?processo.numero=" + case_number
-        self.driver.get(case_url)
-
-        if not "processo.codigo" in self.driver.current_url:
-            # Will enter in this block if get some error to get the case page by url
-            # so we try another method.
-            search_page = CaseSearchPage(self.driver)
-            return search_page.search_case(case_number)
-        else:
-            return CasePage(self.driver)
+        self.driver.get(CASE_SEARCH_URL)
+        search_page = CaseSearchPage(self.driver)
+        return search_page.search_case(case_number)
 
     def login(self, username, password):
         self.driver.get(LOGIN_URL)
@@ -200,6 +216,20 @@ class TjWebScraping:
             date = date - timedelta(2)
 
         return date
+
+    def filter_precatorys(self, precatory_urls):
+        filtered_cases = []
+        for url in precatory_urls:
+            self.driver.get(url)
+            case_page = CasePage(self.driver)
+
+            precatory_situation = upper_no_accent(case_page.get_situation())
+            if precatory_situation in ["EXTINTO", "ARQUIVADO"]:
+                continue
+
+            filtered_cases.append(precatory_urls)
+
+        return filtered_cases
 
 
 def clear_book_cases_result(cases):

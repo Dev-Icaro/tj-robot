@@ -24,7 +24,7 @@ class LoginPage(BasePage):
         self.driver.find_element(*self.password_by).send_keys(password)
 
     def submit_login(self):
-        self.driver.find_element(self.login_button_by).click()
+        self.driver.find_element(*self.login_button_by).click()
 
     def login_as(self, username, password):
         self.type_username(username)

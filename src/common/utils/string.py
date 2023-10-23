@@ -3,6 +3,9 @@ import re
 
 
 def remove_accents(s):
+    if not s:
+        return
+
     accent_map = {
         ord(accent): unidecode(accent)
         for accent in set(s)
@@ -21,4 +24,9 @@ def extract_letters(string):
     letters = re.findall("[A-Za-z]+", string)
     return "".join(letters)
 
-    
+
+def upper_no_accent(s):
+    if not s:
+        return
+
+    return remove_accents(s).upper()
