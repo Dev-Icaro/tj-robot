@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import InvalidElementStateException
 from common.utils.string import extract_letters, extract_numbers
 from common.utils.date import is_valid_date
+from common.utils.errors import ValidationResult
 from common.exceptions.app_exception import AppException
 from web_scraping.components.base_component import BaseComponent
 
@@ -38,8 +39,9 @@ class Calendar(BaseComponent):
         self.day_button_by = (By.CSS_SELECTOR, "tbody > tr.daysrow td.day")
 
     def set_date(self, date):
-        if not is_valid_date(date):
-            raise AppException("Data inválida para ao selecionar data do calendário.")
+        errors = self.validate_date(date)
+        if not errors.is_empty():
+            raise AppException("Erro ao validar data no calendário:", errors.to_array())
 
         date_obj = datetime.strptime(date, "%d/%m/%Y")
 
@@ -109,6 +111,8 @@ class Calendar(BaseComponent):
         date = date_obj
         try_limit = 3
         tries = 0
+
+        # Retirar o bloco while pois creio que a recursão no set_date já fara o a função ser chamada
         while self.locate_day_button(date_obj.day).is_disabled():
             try:
                 date = date - timedelta(1)
@@ -121,6 +125,20 @@ class Calendar(BaseComponent):
                         f'Data escolhida: {date_obj.strftime("%d/%m/%Y")}.'
                     )
                 continue
+
+    def validate_date(date):
+        result = ValidationResult()
+
+        if not date:
+            result.add_error("Parâmetro requerido:", date)
+
+        if not is_valid_date(date):
+            result.add_error("Data inválida para ao selecionar data do calendário.")
+
+        if not is_date_in_limit(date):
+            result.add_error("Data fora do limite do calendário do TJ.")
+
+        return result
 
 
 class CalendarNavigation(BaseComponent):
@@ -175,16 +193,10 @@ def find_calendar(driver):
     return Calendar(calendar)
 
 
-def is_date_in_calendar_limit(date):
+def is_date_in_limit(date):
     date_obj = datetime.strptime(date, "%d/%m/%Y")
-
     curr_year = datetime.now().year.strptime("%Y")
     year_dif = abs(date_obj.year - curr_year)
 
-    if year_dif > 15:
-        raise AppException("Limite de diferença de anos excedido.")
-
-    if date_obj > datetime.date():
-        raise AppException(
-            "Não é permitido inserir uma data maior que a data atual como paramêtro."
-        )
+    if year_dif > 15 or date_obj > datetime.date():
+        return False
