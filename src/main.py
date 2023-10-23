@@ -47,9 +47,12 @@ def main():
         )
 
         precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-        enforcement_judgment = interesting_cases.get_enforcement_judgment_urls()
+        enforcement_judgments = [
+            scraping.get_case_number_by_url(url)
+            for url in interesting_cases.get_enforcement_judgment_urls()
+        ]
 
-        save_result_to_xls_folder(case_numbers, interesting_cases)
+        save_result_to_xls_folder(case_numbers, precatorys, enforcement_judgments)
 
     except Exception as e:
         logger.error(e)

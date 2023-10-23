@@ -5,7 +5,11 @@ import pandas as pd
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from web_scraping.pages.book_search_page import BookSearchPage
-from web_scraping.tj_scraping import TjWebScraping, clear_book_cases_result
+from web_scraping.tj_scraping import (
+    TjWebScraping,
+    clear_book_cases_result,
+    save_result_to_xls_folder,
+)
 from common.utils.logger import logger
 from common.utils.config_file import read_config_file, validate_config_params
 from common.utils.xls import generate_xls_name, write_xls
@@ -101,20 +105,16 @@ def test_filter_result():
     scraping = TjWebScraping(driver)
 
     scraping.login("28992745893", "Alice17*")
-    filter_result = scraping.find_interesting_cases(found_cases, requeridos)
 
-    xls_object = {
-        "Processos analisados": found_cases,
-        "Processos selecionados": filter_result,
-    }
+    interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
 
-    xls_dir = "xls"
-    xls_name = generate_xls_name()
-    if not os.path.exists(xls_dir):
-        os.mkdir(xls_dir)
+    precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
+    enforcement_judgments = [
+        scraping.get_case_number_by_url(url)
+        for url in interesting_cases.get_enforcement_judgment_urls()
+    ]
 
-    xls_path = os.path.join(xls_dir, xls_name)
-    write_xls(xls_path, xls_object)
+    save_result_to_xls_folder(found_cases, precatorys, enforcement_judgments)
 
     logger.info(
         f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."

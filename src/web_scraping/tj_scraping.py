@@ -9,7 +9,7 @@ from common.utils.string import remove_accents, upper_no_accent
 from common.utils.logger import logger
 from common.constants.tj_site import CASE_SEARCH_URL, LOGIN_URL
 from common.utils.xls import generate_xls_name, write_xls
-from common.exceptions.app_exception import AppException
+from common.exceptions.app_exception import AppException, RequiredArgumentException
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
     InvalidPageException,
@@ -231,13 +231,23 @@ class TjWebScraping:
 
         return filtered_cases
 
+    def get_case_number_by_url(self, case_url):
+        if not case_url:
+            raise RequiredArgumentException(
+                "URL do processo é um argumento obrigatório"
+            )
+
+        self.driver.get(case_url)
+        case_page = CasePage(self.driver)
+        return case_page.get_case_number()
+
 
 def clear_book_cases_result(cases):
     logger.info("Eliminando processos duplicados ...")
     return remove_duplicate(flatten(cases))
 
 
-def save_result_to_xls_folder(analyzed_cases, filtered_cases):
+def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments):
     xls_dir = "xls"
     xls_name = generate_xls_name()
     xls_path = os.path.join(xls_dir, xls_name)
@@ -245,12 +255,16 @@ def save_result_to_xls_folder(analyzed_cases, filtered_cases):
     if not os.path.exists(xls_dir):
         os.mkdir(xls_dir)
 
-    while len(analyzed_cases) > len(filtered_cases):
-        filtered_cases.append("")
+    while len(analyzed_cases) > len(precatorys):
+        precatorys.append("")
+
+    while len(analyzed_cases) > len(enforcement_judgments):
+        enforcement_judgments.append("")
 
     xls_object = {
         "Processos analisados": analyzed_cases,
-        "Processos selecionados": filtered_cases,
+        "Precatórios": precatorys,
+        "Cumprimentos sem incidentes": enforcement_judgments,
     }
 
     write_xls(xls_path, xls_object)

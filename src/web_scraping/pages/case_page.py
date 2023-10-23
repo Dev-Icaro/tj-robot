@@ -28,6 +28,7 @@ class CasePage(BasePage):
     )
     incidents_by = (By.CSS_SELECTOR, "a.incidente")
     situation_by = (By.CLASS_NAME, "unj-tag")
+    case_number_by = (By.ID, "numeroProcesso")
 
     def has_incident(self):
         return True if len(self.get_incidents()) > 0 else False
@@ -79,7 +80,13 @@ class CasePage(BasePage):
         return [Incident(incident) for incident in incidents]
 
     def get_situation(self):
-        return self.driver.find_elements(*self.situation_by)[0].text
+        try:
+            return self.driver.find_element(*self.situation_by).text
+        except NoSuchElementException:
+            return ""
+
+    def get_case_number(self):
+        return self.driver.find_element(*self.case_number_by).text.strip()
 
 
 class Participant(BaseComponent):
