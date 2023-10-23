@@ -5,8 +5,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import InvalidElementStateException
 from common.utils.string import extract_letters, extract_numbers
 from common.utils.date import is_valid_date
-from common.utils.errors import ValidationResult
-from common.exceptions.app_exception import AppException
+from common.exceptions.app_exception import (
+    AppException,
+    InvalidArgumentException,
+    InvalidDateException,
+    RequiredArgumentException,
+)
+from web_scraping.common.exceptions import DisabledCalendarDateException
 from web_scraping.components.base_component import BaseComponent
 
 
@@ -39,18 +44,18 @@ class Calendar(BaseComponent):
         self.day_button_by = (By.CSS_SELECTOR, "tbody > tr.daysrow td.day")
 
     def set_date(self, date):
-        errors = self.validate_date(date)
-        if not errors.is_empty():
-            raise AppException("Erro ao validar data no calendário:", errors.to_array())
+        if isinstance(date, str):
+            date_obj = datetime.strptime(date, "%d/%m/%Y")
+        elif isinstance(date, datetime):
+            date_obj = date
+        else:
+            raise InvalidArgumentException("Argumento inválido em set_date do calendar")
 
-        date_obj = datetime.strptime(date, "%d/%m/%Y")
+        self.validate_date(date)
 
         self.set_year(date_obj.year)
         self.set_month(date_obj.month)
-        try:
-            self.set_day(date_obj.day)
-        except InvalidElementStateException:
-            self.locate_valid_day_btn(date_obj)
+        self.set_day(date_obj.day)
 
     def get_year(self):
         title = self.root.find_element(*self.title_by).text
@@ -91,7 +96,7 @@ class Calendar(BaseComponent):
     def set_day(self, day):
         day_btn = self.locate_day_button(day)
         if day_btn.is_disabled():
-            raise InvalidElementStateException(
+            raise DisabledCalendarDateException(
                 "O Botão do dia selecionado, no calendário, está desabilitado."
             )
 
@@ -126,19 +131,20 @@ class Calendar(BaseComponent):
                     )
                 continue
 
-    def validate_date(date):
-        result = ValidationResult()
+    def validate_date(self, date):
+        if isinstance(date, datetime):
+            date = date.strftime("%d/%m/%Y")
 
         if not date:
-            result.add_error("Parâmetro requerido:", date)
+            raise RequiredArgumentException("Parâmetro requerido:", date)
 
         if not is_valid_date(date):
-            result.add_error("Data inválida para ao selecionar data do calendário.")
+            raise InvalidDateException(
+                "Data inválida para ao selecionar data do calendário."
+            )
 
         if not is_date_in_limit(date):
-            result.add_error("Data fora do limite do calendário do TJ.")
-
-        return result
+            raise InvalidDateException("Data fora do limite do calendário do TJ.")
 
 
 class CalendarNavigation(BaseComponent):
@@ -195,8 +201,11 @@ def find_calendar(driver):
 
 def is_date_in_limit(date):
     date_obj = datetime.strptime(date, "%d/%m/%Y")
-    curr_year = datetime.now().year.strptime("%Y")
-    year_dif = abs(date_obj.year - curr_year)
+    cur_date = datetime.now()
+    cur_year = cur_date.year
+    year_dif = abs(int(date_obj.year - cur_year))
 
-    if year_dif > 15 or date_obj > datetime.date():
+    if year_dif > 15 or date_obj > cur_date:
         return False
+    else:
+        return True

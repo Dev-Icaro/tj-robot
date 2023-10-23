@@ -1,3 +1,4 @@
+from datetime import timedelta, datetime
 import os
 from time import sleep
 import concurrent.futures
@@ -9,7 +10,8 @@ from common.utils.logger import logger
 from common.constants.tj_site import BASE_URL, LOGIN_URL
 from common.utils.xls import generate_xls_name, write_xls
 from common.exceptions.app_exception import AppException
-from web_scraping.common.exceptions.invalid_page_exception import (
+from web_scraping.common.exceptions import (
+    DisabledCalendarDateException,
     InvalidPageException,
 )
 from web_scraping.pages.case_search_page import CaseSearchPage
@@ -31,11 +33,9 @@ class TjWebScraping:
     def get_book_cases_by_keywords(
         self, book_option_text, keywords, start_date, end_date
     ):
-        search_page = BookSearchPage(self.driver)
-        search_page.select_book(book_option_text).set_keyword(keywords).set_start_date(
-            start_date
-        ).set_end_date(end_date)
-
+        search_page = self._init_search_page(
+            book_option_text, keywords, start_date, end_date
+        )
         occurrences_list = search_page.click_search_button()
         book_pages = self._get_occurrences_pages(occurrences_list)
         pages_chunks = separate_pages_in_sequencial_chunks(book_pages)
@@ -131,7 +131,6 @@ class TjWebScraping:
 
     def _get_occurrences_pages(self, occurrences_list):
         pages = []
-
         pages_urls = self._extract_pages_urls(occurrences_list)
         prev_pages_urls = [get_previous_page_url(url) for url in pages_urls]
         pages_urls += prev_pages_urls
@@ -175,6 +174,32 @@ class TjWebScraping:
                 finished = True
 
         return pdf_urls
+
+    def _init_search_page(self, book_option_text, keywords, start_date, end_date):
+        search_page = BookSearchPage(self.driver)
+        search_page.select_book(book_option_text).set_keyword(keywords)
+        try:
+            search_page.set_start_date(start_date)
+        except DisabledCalendarDateException:
+            search_page.set_start_date(self.calc_valid_calendar_date(start_date))
+
+        try:
+            search_page.set_end_date(end_date)
+        except DisabledCalendarDateException:
+            search_page.set_end_date(self.calc_valid_calendar_date(end_date))
+
+        return search_page
+
+    def calc_valid_calendar_date(self, date):
+        date = datetime.strptime(date, "%d/%m/%Y")
+
+        if date.weekday() == 5:
+            date = date - timedelta(1)
+
+        if date.weekday() == 6:
+            date = date - timedelta(2)
+
+        return date
 
 
 def clear_book_cases_result(cases):
