@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import InvalidElementStateException
 from common.utils.string import extract_letters, extract_numbers
 from common.utils.date import is_valid_date
 from common.exceptions.app_exception import (
@@ -49,7 +48,9 @@ class Calendar(BaseComponent):
         elif isinstance(date, datetime):
             date_obj = date
         else:
-            raise InvalidArgumentException("Argumento inválido em set_date do calendar")
+            raise InvalidArgumentException(
+                "Tipagem de 'date' inválida em set_date em Calendar"
+            )
 
         self.validate_date(date)
 
@@ -111,25 +112,6 @@ class Calendar(BaseComponent):
         for day_btn in day_buttons:
             if int(day_btn.get_text()) == day:
                 return day_btn
-
-    def locate_valid_day_btn(self, date_obj):
-        date = date_obj
-        try_limit = 3
-        tries = 0
-
-        # Retirar o bloco while pois creio que a recursão no set_date já fara o a função ser chamada
-        while self.locate_day_button(date_obj.day).is_disabled():
-            try:
-                date = date - timedelta(1)
-                self.set_date(date.strftime("%d/%m/%Y"))
-            except InvalidElementStateException:
-                tries += 1
-                if tries >= try_limit:
-                    raise AppException(
-                        "O Período de datas escolhido está desabilitado no site do TJ."
-                        f'Data escolhida: {date_obj.strftime("%d/%m/%Y")}.'
-                    )
-                continue
 
     def validate_date(self, date):
         if isinstance(date, datetime):

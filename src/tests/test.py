@@ -6,6 +6,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.tj_scraping import (
+    Case,
     TjWebScraping,
     clear_book_cases_result,
     save_result_to_xls_folder,
@@ -96,29 +97,34 @@ def test_scraping_result():
 
 def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
-
-    # df = pd.read_excel("processos_analisados.xlsx")
-    # found_cases = df["Processos analisados"].to_list()
     found_cases = ["0019690-51.2003.8.26.0053"]
+    # found_cases = ["0008845-03.2016.8.26.0053"]
 
-    driver = init_driver()
-    scraping = TjWebScraping(driver)
+    # driver = init_driver()
+    # scraping = TjWebScraping(driver)
 
-    scraping.login("28992745893", "Alice17*")
+    # scraping.login("28992745893", "Alice17*")
+    # interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
 
-    interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
+    # precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
+    # enforcement_judgments = [
+    #     Case(scraping.get_case_number_by_url(url), url)
+    #     for url in interesting_cases.get_enforcement_judgment_urls()
+    # ]
 
-    precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
+    found_cases = ["1111", "1111", "1111"]
+    precatorys = [
+        Case("11111", "www.google.com"),
+        Case("11111", "www.google.com"),
+        Case("11111", "www.google.com"),
+    ]
     enforcement_judgments = [
-        scraping.get_case_number_by_url(url)
-        for url in interesting_cases.get_enforcement_judgment_urls()
+        Case("11111", "www.google.com"),
+        Case("11111", "www.google.com"),
+        Case("11111", "www.google.com"),
     ]
 
     save_result_to_xls_folder(found_cases, precatorys, enforcement_judgments)
-
-    logger.info(
-        f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
-    )
 
 
 def test_specific_url():

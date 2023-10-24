@@ -1,14 +1,15 @@
 from datetime import timedelta, datetime
-import os
+import os, xlsxwriter
 from time import sleep
 import concurrent.futures
+import pandas as pd
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import remove_accents, upper_no_accent
 from common.utils.logger import logger
 from common.constants.tj_site import CASE_SEARCH_URL, LOGIN_URL
-from common.utils.xls import generate_xls_name, write_xls
+from common.utils.xls import generate_xls_name, add_hyperlinks, hyperlink_format
 from common.exceptions.app_exception import AppException, RequiredArgumentException
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
@@ -17,6 +18,7 @@ from web_scraping.common.exceptions import (
 from web_scraping.pages.case_search_page import CaseSearchPage
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.case_page import CasePage
+from web_scraping.pages.incident_case_page import IncidentCasePage
 from web_scraping.pages.login_page import LoginPage
 from web_scraping.common.utils.book_page import (
     CaseNumberExtractor,
@@ -24,6 +26,12 @@ from web_scraping.common.utils.book_page import (
     separate_pages_in_sequencial_chunks,
     fetch_page_from_url,
 )
+
+
+class Case:
+    def __init__(self, case_number, case_url):
+        self.case_number = case_number
+        self.case_url = case_url
 
 
 class CasesResult:
@@ -133,6 +141,7 @@ class TjWebScraping:
                 else:
                     continue
 
+        sleep(0.3)
         return interesting_cases
 
     def load_case_page(self, case_number):
@@ -211,23 +220,32 @@ class TjWebScraping:
 
         if date.weekday() == 5:
             date = date - timedelta(1)
-
-        if date.weekday() == 6:
+        elif date.weekday() == 6:
             date = date - timedelta(2)
 
         return date
 
     def filter_precatorys(self, precatory_urls):
         filtered_cases = []
+        precatory_count = len(precatory_urls)
+        cur_precatory = 0
         for url in precatory_urls:
-            self.driver.get(url)
-            case_page = CasePage(self.driver)
+            try:
+                cur_precatory += 1
+                logger.info(
+                    f"Filtrando precatórios {cur_precatory} de {precatory_count} ... "
+                )
+                self.driver.get(url)
+                case_page = IncidentCasePage(self.driver)
 
-            precatory_situation = upper_no_accent(case_page.get_situation())
-            if precatory_situation in ["EXTINTO", "ARQUIVADO"]:
-                continue
+                precatory_situation = upper_no_accent(case_page.get_situation())
+                if precatory_situation in ["EXTINTO", "ARQUIVADO"]:
+                    continue
 
-            filtered_cases.append(precatory_urls)
+                precatory = Case(case_page.get_case_number(), url)
+                filtered_cases.append(precatory)
+            finally:
+                sleep(0.3)
 
         return filtered_cases
 
@@ -236,9 +254,9 @@ class TjWebScraping:
             raise RequiredArgumentException(
                 "URL do processo é um argumento obrigatório"
             )
-
+        sleep(0.3)
         self.driver.get(case_url)
-        case_page = CasePage(self.driver)
+        case_page = IncidentCasePage(self.driver)
         return case_page.get_case_number()
 
 
@@ -255,19 +273,33 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
     if not os.path.exists(xls_dir):
         os.mkdir(xls_dir)
 
-    while len(analyzed_cases) > len(precatorys):
-        precatorys.append("")
-
-    while len(analyzed_cases) > len(enforcement_judgments):
-        enforcement_judgments.append("")
-
     xls_object = {
         "Processos analisados": analyzed_cases,
-        "Precatórios": precatorys,
-        "Cumprimentos sem incidentes": enforcement_judgments,
+        "Precatórios": [precatory.case_number for precatory in precatorys],
+        "Cumprimentos sem incidentes": [
+            enforcement_judgment.case_number
+            for enforcement_judgment in enforcement_judgments
+        ],
     }
 
-    write_xls(xls_path, xls_object)
+    df = pd.DataFrame.from_dict(xls_object, orient="index")
+    df = df.transpose()
+
+    column = "Precatórios"
+    precatory_urls = [precatory.case_url for precatory in precatorys]
+    df[column] = df.apply(add_hyperlinks, urls=precatory_urls, row_label=column, axis=1)
+
+    column = "Cumprimentos sem incidentes"
+    enforcement_urls = [enforcement.case_url for enforcement in enforcement_judgments]
+    df[column] = df.apply(
+        add_hyperlinks, urls=enforcement_urls, row_label=column, axis=1
+    )
+    styled_df = df.style.applymap(
+        hyperlink_format, subset=["Precatórios", "Cumprimentos sem incidentes"]
+    )
+
+    styled_df.to_excel(xls_path, engine="openpyxl", index=False, na_rep="")
+
     logger.info(
         f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
     )
