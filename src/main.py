@@ -1,4 +1,4 @@
-from web_scraping.tj_scraping import TjWebScraping, save_result_to_xls_folder
+from web_scraping.tj_scraping import Case, TjWebScraping, save_result_to_xls_folder
 import sys
 import os
 from common.utils.logger import logger
@@ -47,12 +47,14 @@ def main():
         )
 
         precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-        enforcement_judgments = [
-            scraping.get_case_number_by_url(url)
-            for url in interesting_cases.get_judgment_execution_urls()
-        ]
 
-        save_result_to_xls_folder(case_numbers, precatorys, enforcement_judgments)
+        judment_execution_urls = interesting_cases.get_judgment_execution_urls()
+        judment_executions = []
+        for url in judment_execution_urls:
+            execution_number = scraping.get_case_number_by_url(url)
+            judment_executions.append(Case(execution_number, url))
+
+        save_result_to_xls_folder(case_numbers, precatorys, judment_executions)
 
     except Exception as e:
         logger.error(e)
@@ -67,4 +69,4 @@ if __name__ == "__main__":
     # test_specific_url()
     # test_scraping_result()
     test_filter_result()
-    # test_separation()
+# test_separation()

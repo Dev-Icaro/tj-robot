@@ -1,3 +1,4 @@
+from web_scraping.common.exceptions import InvalidPageException
 from web_scraping.pages.base_page import BasePage
 from web_scraping.pages.case_page import CasePage
 from common.constants.tj_site import CASE_SEARCH_URL
@@ -5,6 +6,7 @@ from common.utils.string import extract_numbers
 from common.utils.selenium import clear_and_type
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 
 
 class CaseSearchPage(BasePage):
@@ -17,6 +19,7 @@ class CaseSearchPage(BasePage):
     case_number_input_by = (By.ID, "numeroDigitoAnoUnificado")
     forum_number_input_by = (By.ID, "foroNumeroUnificado")
     search_button_by = (By.ID, "botaoConsultarProcessos")
+    case_list_by = (By.ID, "listagemDeProcessos")
 
     def type_case_number(self, case_number):
         self.wait.until(
@@ -33,10 +36,23 @@ class CaseSearchPage(BasePage):
         self.wait.until(EC.element_to_be_clickable(self.search_button_by)).click()
         return CasePage(self.driver)
 
+    def is_case_list_present(self):
+        try:
+            self.driver.find_element(*self.case_list_by)
+            return True
+        except NoSuchElementException:
+            return False
+
     def search_case(self, case_number):
         case_numbers = extract_numbers(case_number)[:13]
         forum_number = case_number[-4:]
 
         self.type_case_number(case_numbers)
         self.type_forum_number(forum_number)
-        return self.submit_search()
+        try:
+            return self.submit_search()
+        except InvalidPageException:
+            # Se aparecer a lista de processos é por que tem mais de uma opção
+            # então basta clicar no botão de submit novamente.
+            if self.is_case_list_present():
+                return self.submit_search()

@@ -2,13 +2,11 @@
   "caderno_pesquisa": "caderno 3 - Judicial - 1ª Instância - Capital",
   "palavras_pesquisa": [
     "Oficio Requisitorio",
-    "Expeça-se",
-    "Incidente",
-    "Precatório"
+    "Expeça-se"
   ],
-  "requeridos_filtro": ["Fazenda"],
-  "data_inicial_pesquisa": "17/09/2023",
-  "data_final_pesquisa": "16/09/2023",
+  "requeridos_filtro": ["DERSA - Desenvolvimento Rodoviário S.A. em liquidação", "Fazenda Pública do Estado de São Paulo"],
+  "data_inicial_pesquisa": "24/10/2023",
+  "data_final_pesquisa": "24/10/2023",
   "usuario_tj": "28992745893",
   "senha_tj": "Alice17*"
 }

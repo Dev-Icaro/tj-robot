@@ -11,7 +11,6 @@ class IncidentCasePage(CasePage):
 
     def get_case_number(self):
         element_text = self.driver.find_element(*self.case_number_by).text.strip()
-        # regex = r"^Precatório \((\S+?)\)"
         regex = r" \((\S+?)\)"
         match = re.search(regex, element_text)
         if match:

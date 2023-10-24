@@ -117,11 +117,20 @@ class TjWebScraping:
                 self.driver.delete_all_cookies()
                 sleep(0.3)
 
+        count_precatorys = len(interesting_cases.get_precatory_urls())
+        count_judgments_exec = len(interesting_cases.get_judgment_execution_urls())
+        logger.info(
+            f"\nForam encontrados {count_precatorys} Precatórios e {count_judgments_exec} Cumprimentos sem incidentes.\n"
+        )
+
         return interesting_cases
 
     def get_interesting_cases(
         self, case_page: CasePage, interesting_cases: CasesResult
     ):
+        if case_page.is_private():
+            return interesting_cases
+
         if case_page.has_incident():
             incidents = case_page.get_incidents()
             for incident in incidents:
@@ -295,7 +304,7 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
         add_hyperlinks, urls=enforcement_urls, row_label=column, axis=1
     )
 
-    styled_df = df.style.applymap(
+    styled_df = df.style.map(
         hyperlink_format, subset=["Precatórios", "Cumprimentos sem incidentes"]
     )
 
@@ -308,7 +317,4 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
         writer.sheets["Sheet1"].set_column(col_idx, col_idx, column_length)
 
     writer.close()
-
-    logger.info(
-        f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."
-    )
+    logger.info(f"\nResultado da pesquisa salvo no arquivo: '{xls_path}'")

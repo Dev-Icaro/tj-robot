@@ -99,6 +99,10 @@ def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
     found_cases = ["0019690-51.2003.8.26.0053"]
     # found_cases = ["0008845-03.2016.8.26.0053"]
+    # found_cases = ["0017872-93.2005.8.26.0053"]
+
+    # df = pd.read_excel("xls/pesquisa_24-10-2023_14-56-46.xlsx")
+    # found_cases = df["Processos analisados"].values
 
     driver = init_driver()
     scraping = TjWebScraping(driver)
@@ -107,28 +111,30 @@ def test_filter_result():
     interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
 
     precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-    enforcement_judgments = [
-        Case(scraping.get_case_number_by_url(url), url)
-        for url in interesting_cases.get_judgment_execution_urls()
-    ]
 
-    found_cases = [
-        "0019690-51.2003.8.26.0053",
-        "0019690-51.2003.8.26.0053",
-        "0019690-51.2003.8.26.0053",
-    ]
-    precatorys = [
-        Case("11111", "www.google.com"),
-        Case("11111", "www.google.com"),
-        Case("11111", "www.google.com"),
-    ]
-    enforcement_judgments = [
-        Case("11111", "www.google.com"),
-        Case("11111", "www.google.com"),
-        Case("11111", "www.google.com"),
-    ]
+    judment_execution_urls = interesting_cases.get_judgment_execution_urls()
+    judment_executions = []
+    for url in judment_execution_urls:
+        execution_number = scraping.get_case_number_by_url(url)
+        judment_executions.append(Case(execution_number, url))
 
-    save_result_to_xls_folder(found_cases, precatorys, enforcement_judgments)
+    # found_cases = [
+    #     "0019690-51.2003.8.26.0053",
+    #     "0019690-51.2003.8.26.0053",
+    #     "0019690-51.2003.8.26.0053",
+    # ]
+    # precatorys = [
+    #     Case("11111", "www.google.com"),
+    #     Case("11111", "www.google.com"),
+    #     Case("11111", "www.google.com"),
+    # ]
+    # enforcement_judgments = [
+    #     Case("11111", "www.google.com"),
+    #     Case("11111", "www.google.com"),
+    #     Case("11111", "www.google.com"),
+    # ]
+
+    save_result_to_xls_folder(found_cases, precatorys, judment_executions)
 
 
 def test_specific_url():
