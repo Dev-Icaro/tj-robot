@@ -30,28 +30,32 @@ from web_scraping.common.utils.book_page import (
 
 class Case:
     def __init__(self, case_number, case_url):
-        self.case_number = case_number
-        self.case_url = case_url
+        self.number = case_number
+        self.url = case_url
 
 
 class CasesResult:
     def __init__(self):
         self.precatorys = []
-        self.enforcement_judgment = []
+        self.judgment_executions = []
 
     def add_precatory_url(self, case_url):
         if not case_url in self.precatorys:
             self.precatorys.append(case_url)
 
-    def add_judgment_execution_url(self, case_url):
-        if not case_url in self.enforcement_judgment:
-            self.enforcement_judgment.append(case_url)
+    def add_judgment_execution_case(self, case):
+        executions_cases = self.get_judgment_executions()
+        for execution in executions_cases:
+            if execution.url == case.url:
+                return
+
+        self.judgment_executions.append(case)
 
     def get_precatory_urls(self):
         return self.precatorys
 
-    def get_judgment_execution_urls(self):
-        return self.enforcement_judgment
+    def get_judgment_executions(self):
+        return self.judgment_executions
 
 
 class TjWebScraping:
@@ -118,7 +122,7 @@ class TjWebScraping:
                 sleep(0.3)
 
         count_precatorys = len(interesting_cases.get_precatory_urls())
-        count_judgments_exec = len(interesting_cases.get_judgment_execution_urls())
+        count_judgments_exec = len(interesting_cases.get_judgment_executions())
         logger.info(
             f"\nForam encontrados {count_precatorys} Precatórios e {count_judgments_exec} Cumprimentos sem incidentes.\n"
         )
@@ -145,7 +149,9 @@ class TjWebScraping:
 
         else:
             if case_page.is_judgment_execution():
-                interesting_cases.add_judgment_execution_url(self.driver.current_url)
+                case_number = IncidentCasePage(self.driver).get_case_number()
+                judgment_execution = Case(case_number, self.driver.current_url)
+                interesting_cases.add_judgment_execution_case(judgment_execution)
 
         sleep(0.3)
         return interesting_cases
@@ -284,9 +290,9 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
 
     xls_object = {
         "Processos analisados": analyzed_cases,
-        "Precatórios": [precatory.case_number for precatory in precatorys],
+        "Precatórios": [precatory.number for precatory in precatorys],
         "Cumprimentos sem incidentes": [
-            enforcement_judgment.case_number
+            enforcement_judgment.number
             for enforcement_judgment in enforcement_judgments
         ],
     }
@@ -295,11 +301,11 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
     df = df.transpose()
 
     column = "Precatórios"
-    precatory_urls = [precatory.case_url for precatory in precatorys]
+    precatory_urls = [precatory.url for precatory in precatorys]
     df[column] = df.apply(add_hyperlinks, urls=precatory_urls, row_label=column, axis=1)
 
     column = "Cumprimentos sem incidentes"
-    enforcement_urls = [enforcement.case_url for enforcement in enforcement_judgments]
+    enforcement_urls = [enforcement.url for enforcement in enforcement_judgments]
     df[column] = df.apply(
         add_hyperlinks, urls=enforcement_urls, row_label=column, axis=1
     )

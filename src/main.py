@@ -47,12 +47,7 @@ def main():
         )
 
         precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-
-        judment_execution_urls = interesting_cases.get_judgment_execution_urls()
-        judment_executions = []
-        for url in judment_execution_urls:
-            execution_number = scraping.get_case_number_by_url(url)
-            judment_executions.append(Case(execution_number, url))
+        judment_executions = interesting_cases.get_judgment_executions()
 
         save_result_to_xls_folder(case_numbers, precatorys, judment_executions)
 

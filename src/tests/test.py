@@ -111,12 +111,7 @@ def test_filter_result():
     interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
 
     precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-
-    judment_execution_urls = interesting_cases.get_judgment_execution_urls()
-    judment_executions = []
-    for url in judment_execution_urls:
-        execution_number = scraping.get_case_number_by_url(url)
-        judment_executions.append(Case(execution_number, url))
+    judment_executions = interesting_cases.get_judgment_executions()
 
     # found_cases = [
     #     "0019690-51.2003.8.26.0053",
