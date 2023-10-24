@@ -43,14 +43,14 @@ class CasesResult:
         if not case_url in self.precatorys:
             self.precatorys.append(case_url)
 
-    def add_enforcement_judgment_url(self, case_url):
+    def add_judgment_execution_url(self, case_url):
         if not case_url in self.enforcement_judgment:
             self.enforcement_judgment.append(case_url)
 
     def get_precatory_urls(self):
         return self.precatorys
 
-    def get_enforcement_judgment_urls(self):
+    def get_judgment_execution_urls(self):
         return self.enforcement_judgment
 
 
@@ -85,6 +85,7 @@ class TjWebScraping:
         interesting_cases = CasesResult()
         cur_case_num = 0
         case_count = len(cases)
+
         for case_number in cases:
             try:
                 cur_case_num += 1
@@ -121,25 +122,21 @@ class TjWebScraping:
     def get_interesting_cases(
         self, case_page: CasePage, interesting_cases: CasesResult
     ):
-        if not case_page.has_incident():
-            if upper_no_accent("Cumprimento de Sentença") in upper_no_accent(
-                case_page.get_judgment_execution()
-            ):
-                interesting_cases.add_enforcement_judgment_url(self.driver.current_url)
-
-        else:
+        if case_page.has_incident():
             incidents = case_page.get_incidents()
             for incident in incidents:
-                incident_class = upper_no_accent(incident.get_class())
-
-                if upper_no_accent("Cumprimento de Sentença") in incident_class:
-                    incident_case_link = incident.get_case_link()
-                    self.driver.get(incident_case_link)
+                if incident.is_judgment_execution():
+                    incident_url = incident.get_case_url()
+                    self.driver.get(incident_url)
                     self.get_interesting_cases(CasePage(self.driver), interesting_cases)
-                elif upper_no_accent("Precatório") in incident_class:
-                    interesting_cases.add_precatory_url(incident.get_case_link())
+                elif incident.is_precatory():
+                    interesting_cases.add_precatory_url(incident.get_case_url())
                 else:
                     continue
+
+        else:
+            if case_page.is_judgment_execution():
+                interesting_cases.add_judgment_execution_url(self.driver.current_url)
 
         sleep(0.3)
         return interesting_cases
@@ -226,7 +223,7 @@ class TjWebScraping:
         return date
 
     def filter_precatorys(self, precatory_urls):
-        filtered_cases = []
+        filtered_precatorys = []
         precatory_count = len(precatory_urls)
         cur_precatory = 0
         for url in precatory_urls:
@@ -235,19 +232,22 @@ class TjWebScraping:
                 logger.info(
                     f"Filtrando precatórios {cur_precatory} de {precatory_count} ... "
                 )
+
                 self.driver.get(url)
                 case_page = IncidentCasePage(self.driver)
 
-                precatory_situation = upper_no_accent(case_page.get_situation())
+                precatory_situation = case_page.get_situation()
                 if precatory_situation in ["EXTINTO", "ARQUIVADO"]:
                     continue
 
-                precatory = Case(case_page.get_case_number(), url)
-                filtered_cases.append(precatory)
+                precatory_number = case_page.get_case_number()
+                precatory = Case(precatory_number, url)
+
+                filtered_precatorys.append(precatory)
             finally:
                 sleep(0.3)
 
-        return filtered_cases
+        return filtered_precatorys
 
     def get_case_number_by_url(self, case_url):
         if not case_url:
@@ -294,11 +294,20 @@ def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments)
     df[column] = df.apply(
         add_hyperlinks, urls=enforcement_urls, row_label=column, axis=1
     )
+
     styled_df = df.style.applymap(
         hyperlink_format, subset=["Precatórios", "Cumprimentos sem incidentes"]
     )
 
-    styled_df.to_excel(xls_path, engine="openpyxl", index=False, na_rep="")
+    writer = pd.ExcelWriter(xls_path)
+    styled_df.to_excel(writer, sheet_name="Sheet1", index=False, na_rep="")
+
+    for column in df:
+        column_length = 30
+        col_idx = df.columns.get_loc(column)
+        writer.sheets["Sheet1"].set_column(col_idx, col_idx, column_length)
+
+    writer.close()
 
     logger.info(
         f"Resultado da pesquisa salvo no arquivo: {xls_path}\n\n Finalizando..."

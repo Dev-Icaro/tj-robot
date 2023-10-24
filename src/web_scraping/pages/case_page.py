@@ -10,6 +10,8 @@ from web_scraping.pages.base_page import BasePage
 from web_scraping.components.base_component import BaseComponent
 import re
 
+JUDGMENT_EXECUTION_REF = "CUMPRIMENTO DE SENTENCA"
+
 
 class CasePage(BasePage):
     def __init__(self, driver):
@@ -47,7 +49,8 @@ class CasePage(BasePage):
 
     def get_judgment_execution(self):
         try:
-            return self.driver.find_element(*self.judgment_execution_by).text
+            judgment_exec = self.driver.find_element(*self.judgment_execution_by).text
+            return upper_no_accent(judgment_exec)
         except:
             pass
 
@@ -81,12 +84,16 @@ class CasePage(BasePage):
 
     def get_situation(self):
         try:
-            return self.driver.find_element(*self.situation_by).text
+            situation = self.driver.find_element(*self.situation_by).text
+            return upper_no_accent(situation)
         except NoSuchElementException:
             return ""
 
     def get_case_number(self):
         return self.driver.find_element(*self.case_number_by).text.strip()
+
+    def is_judgment_execution(self):
+        return JUDGMENT_EXECUTION_REF in self.get_judgment_execution()
 
 
 class Participant(BaseComponent):
@@ -116,10 +123,16 @@ class Incident(BaseComponent):
     def __init__(self, root):
         super().__init__(root)
         self.case_class = self.root.text
-        self.link = self.root.get_attribute("href")
+        self.url = self.root.get_attribute("href")
 
-    def get_case_link(self):
-        return self.link
+    def get_case_url(self):
+        return self.url
 
     def get_class(self):
-        return self.case_class
+        return upper_no_accent(self.case_class)
+
+    def is_precatory(self):
+        return "PRECATORIO" in self.get_class()
+
+    def is_judgment_execution(self):
+        return JUDGMENT_EXECUTION_REF in self.get_class()

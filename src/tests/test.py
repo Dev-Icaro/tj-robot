@@ -100,19 +100,23 @@ def test_filter_result():
     found_cases = ["0019690-51.2003.8.26.0053"]
     # found_cases = ["0008845-03.2016.8.26.0053"]
 
-    # driver = init_driver()
-    # scraping = TjWebScraping(driver)
+    driver = init_driver()
+    scraping = TjWebScraping(driver)
 
-    # scraping.login("28992745893", "Alice17*")
-    # interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
+    scraping.login("28992745893", "Alice17*")
+    interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
 
-    # precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-    # enforcement_judgments = [
-    #     Case(scraping.get_case_number_by_url(url), url)
-    #     for url in interesting_cases.get_enforcement_judgment_urls()
-    # ]
+    precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
+    enforcement_judgments = [
+        Case(scraping.get_case_number_by_url(url), url)
+        for url in interesting_cases.get_judgment_execution_urls()
+    ]
 
-    found_cases = ["1111", "1111", "1111"]
+    found_cases = [
+        "0019690-51.2003.8.26.0053",
+        "0019690-51.2003.8.26.0053",
+        "0019690-51.2003.8.26.0053",
+    ]
     precatorys = [
         Case("11111", "www.google.com"),
         Case("11111", "www.google.com"),

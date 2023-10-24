@@ -8,14 +8,6 @@ def write_xls(file_path, data_frame):
     df = pd.DataFrame.from_dict(data_frame, orient="index")
     df = df.transpose()
     df.to_excel(file_path, engine="openpyxl", index=False, na_rep="")
-    # else:
-    #     df_existing = pd.read_excel(
-    #         file_path,
-    #         engine="openpyxl",
-    #         converters={col: str for col in df.columns},
-    #     )
-    #     df = pd.concat([df_existing, df], ignore_index=True)
-    #     df.to_excel(file_path, engine="openpyxl", index=False)
 
 
 def generate_xls_name():
