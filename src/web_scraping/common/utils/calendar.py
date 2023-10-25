@@ -13,7 +13,7 @@ def find_calendar(driver):
     return Calendar(calendar)
 
 
-def calc_valid_calendar_date(self, date):
+def calc_valid_calendar_date(date):
     date = datetime.strptime(date, "%d/%m/%Y")
 
     if date.weekday() == 5:

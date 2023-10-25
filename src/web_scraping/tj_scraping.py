@@ -88,7 +88,7 @@ class TjWebScraping:
                 i += 1
                 logger.info(f"Analisando processo {i} de {len(cases)} ...")
 
-                case = load_case_page(case_number)
+                case = load_case_page(self.driver, case_number)
 
                 if case.is_private():
                     continue

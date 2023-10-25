@@ -33,7 +33,7 @@ def main():
 
         logger.info(
             f"Foram encontrados {len(case_numbers)} processos na pesquisa.\n"
-            f"\nIniciando 2° etapa: Extração dos precatórios dos processos encontrados...\n"
+            f"\nIniciando 2° etapa: Analise dos precatórios dos processos encontrados...\n"
         )
 
         wanted_exectdos = config["requeridos_filtro"]

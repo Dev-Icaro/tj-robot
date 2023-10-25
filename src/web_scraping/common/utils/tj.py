@@ -7,9 +7,9 @@ import os
 import pandas as pd
 
 
-def load_case_page(self, case_number):
-    self.driver.get(CASE_SEARCH_URL)
-    search_page = CaseSearchPage(self.driver)
+def load_case_page(driver, case_number):
+    driver.get(CASE_SEARCH_URL)
+    search_page = CaseSearchPage(driver)
     return search_page.search_case(case_number)
 
 
