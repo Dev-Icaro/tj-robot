@@ -1,4 +1,3 @@
-from datetime import timedelta, datetime
 import os
 from time import sleep
 import concurrent.futures
@@ -6,14 +5,14 @@ import pandas as pd
 from common.utils.array import remove_duplicate, flatten
 from common.utils.string import upper_no_accent
 from common.utils.logger import logger
-from common.constants.tj_site import CASE_SEARCH_URL, LOGIN_URL
+from common.constants.tj_site import LOGIN_URL
 from common.utils.xls import generate_xls_name, add_hyperlinks, hyperlink_format
-from common.exceptions.app_exception import RequiredArgumentException
+from common.utils.tj_utils import load_case_page
+from common.utils.calendar import calc_valid_calendar_date
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
     InvalidPageException,
 )
-from web_scraping.pages.case_search_page import CaseSearchPage
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.pages.case_page import CasePage
 from web_scraping.pages.incident_case_page import IncidentCasePage
@@ -92,7 +91,7 @@ class TjWebScraping:
                 i += 1
                 logger.info(f"Analisando processo {i} de {len(cases)} ...")
 
-                case = self.load_case_page(case_number)
+                case = load_case_page(case_number)
 
                 if case.is_private():
                     continue
@@ -148,11 +147,6 @@ class TjWebScraping:
                 result.add_judgment_execution(judgment_execution)
 
         return result
-
-    def load_case_page(self, case_number):
-        self.driver.get(CASE_SEARCH_URL)
-        search_page = CaseSearchPage(self.driver)
-        return search_page.search_case(case_number)
 
     def login(self, username, password):
         self.driver.get(LOGIN_URL)
@@ -211,24 +205,14 @@ class TjWebScraping:
         try:
             search_page.set_start_date(start_date)
         except DisabledCalendarDateException:
-            search_page.set_start_date(self.calc_valid_calendar_date(start_date))
+            search_page.set_start_date(calc_valid_calendar_date(start_date))
 
         try:
             search_page.set_end_date(end_date)
         except DisabledCalendarDateException:
-            search_page.set_end_date(self.calc_valid_calendar_date(end_date))
+            search_page.set_end_date(calc_valid_calendar_date(end_date))
 
         return search_page
-
-    def calc_valid_calendar_date(self, date):
-        date = datetime.strptime(date, "%d/%m/%Y")
-
-        if date.weekday() == 5:
-            date = date - timedelta(1)
-        elif date.weekday() == 6:
-            date = date - timedelta(2)
-
-        return date
 
     def filter_precatorys(self, precatory_urls):
         filtered_precatorys = []
@@ -256,16 +240,6 @@ class TjWebScraping:
                 sleep(0.3)
 
         return filtered_precatorys
-
-    def get_case_number_by_url(self, case_url):
-        if not case_url:
-            raise RequiredArgumentException(
-                "URL do processo é um argumento obrigatório"
-            )
-        sleep(0.3)
-        self.driver.get(case_url)
-        case_page = IncidentCasePage(self.driver)
-        return case_page.get_case_number()
 
 
 def clear_book_cases_result(cases):

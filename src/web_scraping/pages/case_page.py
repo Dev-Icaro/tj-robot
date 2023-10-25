@@ -1,10 +1,7 @@
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.relative_locator import locate_with
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
-from common.utils.string import remove_accents, upper_no_accent
-from common.constants.tj_site import BASE_URL
+from common.utils.string import upper_no_accent
 from web_scraping.common.exceptions import InvalidPageException
 from web_scraping.pages.base_page import BasePage
 from web_scraping.components.base_component import BaseComponent

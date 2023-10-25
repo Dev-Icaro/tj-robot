@@ -1,9 +1,8 @@
 from datetime import datetime
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from common.utils.string import extract_letters, extract_numbers
 from common.utils.date import is_valid_date
+from common.utils.calendar import is_date_in_limit
 from common.exceptions.app_exception import (
     AppException,
     InvalidArgumentException,
@@ -171,23 +170,3 @@ class CalendarDayButton(BaseComponent):
     def click(self):
         self.root.click()
         return self
-
-
-def find_calendar(driver):
-    calendar = WebDriverWait(driver, 3).until(
-        EC.visibility_of_any_elements_located((By.CSS_SELECTOR, "div.calendar"))
-    )[0]
-
-    return Calendar(calendar)
-
-
-def is_date_in_limit(date):
-    date_obj = datetime.strptime(date, "%d/%m/%Y")
-    cur_date = datetime.now()
-    cur_year = cur_date.year
-    year_dif = abs(int(date_obj.year - cur_year))
-
-    if year_dif > 15 or date_obj > cur_date:
-        return False
-    else:
-        return True
