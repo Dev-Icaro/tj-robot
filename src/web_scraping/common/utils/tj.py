@@ -1,6 +1,5 @@
 from common.constants.tj_site import CASE_SEARCH_URL
 from common.utils.logger import logger
-from common.utils.array import remove_duplicate, flatten
 from common.utils.xls import generate_xls_name, hyperlink_format, add_hyperlinks
 from web_scraping.pages.case_search_page import CaseSearchPage
 import os

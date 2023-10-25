@@ -108,7 +108,7 @@ class TjWebScraping:
 
             finally:
                 self.driver.delete_all_cookies()
-                sleep(0.2)
+                sleep(0.4)
 
         count_precatorys = len(incidents.get_precatory_urls())
         count_judgments_exec = len(incidents.get_judgment_executions())

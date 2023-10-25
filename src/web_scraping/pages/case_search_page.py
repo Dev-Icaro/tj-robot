@@ -4,8 +4,8 @@ from common.constants.tj_site import CASE_SEARCH_URL
 from common.utils.string import extract_numbers
 from common.utils.selenium import clear_and_type
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
+import selenium.webdriver.support.expected_conditions as EC
 
 
 class CaseSearchPage(BasePage):

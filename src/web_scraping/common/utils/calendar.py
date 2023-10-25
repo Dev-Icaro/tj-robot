@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from web_scraping.components.calendar import Calendar
+import selenium.webdriver.support.expected_conditions as EC
 
 
 def find_calendar(driver):
