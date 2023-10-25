@@ -4,8 +4,8 @@ from common.utils.array import remove_duplicate
 from common.utils.string import upper_no_accent
 from common.utils.logger import logger
 from common.constants.tj_site import LOGIN_URL
-from common.utils.tj import load_case_page, clear_book_cases_result
-from common.utils.calendar import calc_valid_calendar_date
+from web_scraping.common.utils.tj import load_case_page, clear_book_cases_result
+from web_scraping.common.utils.calendar import calc_valid_calendar_date
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
     InvalidPageException,

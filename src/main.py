@@ -4,7 +4,6 @@ from web_scraping.common.utils.tj import save_result_to_xls_folder
 from common.utils.logger import logger
 from common.utils.selenium import init_driver
 from common.utils.config_file import read_config_file
-from tests.test import test_specific_url, test_filter_result, test_separation
 
 
 def main():
@@ -65,4 +64,4 @@ if __name__ == "__main__":
     # test_specific_url()
     # test_scraping_result()
     # test_filter_result()
-# test_separation()
+    # test_separation()
