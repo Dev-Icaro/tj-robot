@@ -97,9 +97,12 @@ def test_scraping_result():
 
 def test_filter_result():
     requeridos = ["Banco do Brasil S/A", "Fazenda Pública do Estado de São Paulo"]
-    found_cases = ["0019690-51.2003.8.26.0053"]
+    # found_cases = ["0019690-51.2003.8.26.0053"]
     # found_cases = ["0008845-03.2016.8.26.0053"]
     # found_cases = ["0017872-93.2005.8.26.0053"]
+
+    df = pd.read_excel("processos.xlsx")
+    found_cases = df["Processos"].values
 
     # df = pd.read_excel("xls/pesquisa_24-10-2023_14-56-46.xlsx")
     # found_cases = df["Processos analisados"].values
@@ -108,7 +111,9 @@ def test_filter_result():
     scraping = TjWebScraping(driver)
 
     scraping.login("28992745893", "Alice17*")
-    interesting_cases = scraping.find_interesting_cases(found_cases, requeridos)
+    interesting_cases = scraping.get_interesting_cases_incidents(
+        found_cases, requeridos
+    )
 
     precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
     judment_executions = interesting_cases.get_judgment_executions()

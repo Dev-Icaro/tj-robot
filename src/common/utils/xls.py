@@ -4,7 +4,6 @@ from datetime import datetime
 
 
 def write_xls(file_path, data_frame):
-    pd.set_option("display.max_colwidth", -1)
     df = pd.DataFrame.from_dict(data_frame, orient="index")
     df = df.transpose()
     df.to_excel(file_path, engine="openpyxl", index=False, na_rep="")

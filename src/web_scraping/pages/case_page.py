@@ -20,6 +20,8 @@ class CasePage(BasePage):
         if not "processo.codigo" in self.driver.current_url:
             raise InvalidPageException("Esta não é a página de um processo")
 
+        # self.wait_load()
+
     participants_by = (By.CSS_SELECTOR, "#tablePartesPrincipais tr.fundoClaro")
     private_by = (By.ID, "popupModalDiv")
     class_by = (By.ID, "classeProcesso")
@@ -35,7 +37,7 @@ class CasePage(BasePage):
     def has_incident(self):
         return True if len(self.get_incidents()) > 0 else False
 
-    def get_exectdo_name(self):
+    def get_respondent(self):
         participants = self.get_participants()
         for participant in participants:
             if participant.get_type() in ["Exectdo", "Ré", "Reqdo", "Reqda"]:
@@ -93,7 +95,19 @@ class CasePage(BasePage):
         return self.driver.find_element(*self.case_number_by).text.strip()
 
     def is_judgment_execution(self):
-        return JUDGMENT_EXECUTION_REF in self.get_judgment_execution()
+        try:
+            return JUDGMENT_EXECUTION_REF in self.get_judgment_execution()
+        except:
+            # will get here if the case has a class intead judgment_execution
+            return False
+
+    def wait_load(self):
+        try:
+            self.wait.until(
+                EC.presence_of_element_located(By.CLASS_NAME, "div-conteudo")
+            )
+        except:
+            pass
 
 
 class Participant(BaseComponent):

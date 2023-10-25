@@ -4,6 +4,7 @@ import os
 from common.utils.logger import logger
 from common.utils.selenium import init_driver
 from common.utils.config_file import read_config_file
+from common.utils.xls import write_xls
 from tests.test import test_specific_url, test_filter_result, test_separation
 
 
@@ -34,7 +35,7 @@ def main():
 
         logger.info(
             f"Foram encontrados {len(case_numbers)} processos na pesquisa.\n"
-            f"Iniciando 2° etapa: Extração dos precatórios dos processos encontrados..."
+            f"\nIniciando 2° etapa: Extração dos precatórios dos processos encontrados...\n"
         )
 
         wanted_exectdos = config["requeridos_filtro"]
@@ -42,7 +43,7 @@ def main():
         password = config["senha_tj"]
 
         scraping.login(user, password)
-        interesting_cases = scraping.find_interesting_cases(
+        interesting_cases = scraping.get_interesting_cases_incidents(
             case_numbers, wanted_exectdos
         )
 
@@ -60,8 +61,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     # test_specific_url()
     # test_scraping_result()
-    test_filter_result()
+    # test_filter_result()
 # test_separation()

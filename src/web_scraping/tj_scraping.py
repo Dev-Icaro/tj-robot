@@ -43,7 +43,7 @@ class CasesResult:
         if not case_url in self.precatorys:
             self.precatorys.append(case_url)
 
-    def add_judgment_execution_case(self, case):
+    def add_judgment_execution(self, case):
         executions_cases = self.get_judgment_executions()
         for execution in executions_cases:
             if execution.url == case.url:
@@ -84,77 +84,74 @@ class TjWebScraping:
 
         return clear_book_cases_result(found_cases)
 
-    def find_interesting_cases(self, cases, wanted_exectdos):
-        wanted_exectdos = [upper_no_accent(exectdo) for exectdo in wanted_exectdos]
-        interesting_cases = CasesResult()
-        cur_case_num = 0
-        case_count = len(cases)
+    def get_interesting_cases_incidents(self, cases, respondents):
+        incidents = CasesResult()
+        respondents = [upper_no_accent(respondent) for respondent in respondents]
 
+        i = 0
         for case_number in cases:
             try:
-                cur_case_num += 1
-                logger.info(f"Análisando processo {cur_case_num} de {case_count} ...")
+                i += 1
+                logger.info(f"Análisando processo {i} de {len(cases)} ...")
 
-                case_page = self.load_case_page(case_number)
+                case = self.load_case_page(case_number)
 
-                if case_page.is_private():
+                if case.is_private():
                     continue
 
-                if case_page.has_main_case():
-                    case_page = case_page.navigate_to_main_case()
+                if case.has_main_case():
+                    case.navigate_to_main_case()
 
-                exectdo_name = case_page.get_exectdo_name()
-                if exectdo_name not in wanted_exectdos:
+                case_respondent = case.get_respondent()
+                if case_respondent not in respondents:
                     continue
 
-                if not case_page.has_incident():
-                    continue
-
-                interesting_cases = self.get_interesting_cases(
-                    case_page, interesting_cases
-                )
+                incidents = self.get_interesting_incidents(case, incidents)
 
             except InvalidPageException:
                 continue
 
             finally:
                 self.driver.delete_all_cookies()
-                sleep(0.3)
+                sleep(0.4)
 
-        count_precatorys = len(interesting_cases.get_precatory_urls())
-        count_judgments_exec = len(interesting_cases.get_judgment_executions())
+        count_precatorys = len(incidents.get_precatory_urls())
+        count_judgments_exec = len(incidents.get_judgment_executions())
         logger.info(
             f"\nForam encontrados {count_precatorys} Precatórios e {count_judgments_exec} Cumprimentos sem incidentes.\n"
         )
 
-        return interesting_cases
+        return incidents
 
-    def get_interesting_cases(
-        self, case_page: CasePage, interesting_cases: CasesResult
-    ):
+    def get_interesting_incidents(self, case_page: CasePage, result: CasesResult):
+        sleep(0.35)
+
         if case_page.is_private():
-            return interesting_cases
+            return result
 
         if case_page.has_incident():
             incidents = case_page.get_incidents()
             for incident in incidents:
                 if incident.is_judgment_execution():
-                    incident_url = incident.get_case_url()
-                    self.driver.get(incident_url)
-                    self.get_interesting_cases(CasePage(self.driver), interesting_cases)
+                    try:
+                        incident_url = incident.get_case_url()
+                        self.driver.get(incident_url)
+                        self.get_interesting_incidents(CasePage(self.driver), result)
+                    except InvalidPageException:
+                        continue
+
                 elif incident.is_precatory():
-                    interesting_cases.add_precatory_url(incident.get_case_url())
+                    incident_url = incident.get_case_url()
+                    result.add_precatory_url(incident_url)
                 else:
                     continue
-
         else:
             if case_page.is_judgment_execution():
                 case_number = IncidentCasePage(self.driver).get_case_number()
                 judgment_execution = Case(case_number, self.driver.current_url)
-                interesting_cases.add_judgment_execution_case(judgment_execution)
+                result.add_judgment_execution(judgment_execution)
 
-        sleep(0.3)
-        return interesting_cases
+        return result
 
     def load_case_page(self, case_number):
         self.driver.get(CASE_SEARCH_URL)
@@ -185,7 +182,7 @@ class TjWebScraping:
             for future in concurrent.futures.as_completed(futures):
                 cur_page += 1
                 logger.info(
-                    f"Efetuando download das páginas do diário ... {cur_page} de {page_count}"
+                    f"Efetuando download das páginas do diário {cur_page} de {page_count} ..."
                 )
                 page = future.result()
                 pages.append(page)
