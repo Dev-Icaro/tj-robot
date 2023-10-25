@@ -6,9 +6,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from web_scraping.pages.book_search_page import BookSearchPage
 from web_scraping.tj_scraping import (
-    Case,
     TjWebScraping,
-    clear_book_cases_result,
     save_result_to_xls_folder,
 )
 from common.utils.logger import logger
@@ -111,9 +109,7 @@ def test_filter_result():
     scraping = TjWebScraping(driver)
 
     scraping.login("28992745893", "Alice17*")
-    interesting_cases = scraping.get_interesting_cases_incidents(
-        found_cases, requeridos
-    )
+    interesting_cases = scraping.get_cases_incidents(found_cases, requeridos)
 
     precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
     judment_executions = interesting_cases.get_judgment_executions()

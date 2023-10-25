@@ -1,10 +1,10 @@
 from time import sleep
 import concurrent.futures
-from common.utils.array import remove_duplicate
+from common.utils.array import flatten, remove_duplicate
 from common.utils.string import upper_no_accent
 from common.utils.logger import logger
 from common.constants.tj_site import LOGIN_URL
-from web_scraping.common.utils.tj import load_case_page, clear_book_cases_result
+from web_scraping.common.utils.tj import load_case_page
 from web_scraping.common.utils.calendar import calc_valid_calendar_date
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
@@ -76,9 +76,10 @@ class TjWebScraping:
 
             found_cases += cases_extractor.find_cases_by_keyword(text)
 
-        return clear_book_cases_result(found_cases)
+        logger.info("Eliminando processos duplicados ...")
+        return remove_duplicate(flatten(found_cases))
 
-    def get_interesting_cases_incidents(self, cases, respondents):
+    def get_cases_incidents(self, cases, respondents):
         incidents = CasesResult()
         respondents = [upper_no_accent(respondent) for respondent in respondents]
 
@@ -162,14 +163,14 @@ class TjWebScraping:
         )
 
         page_count = len(pages_urls)
-        cur_page = 0
+        i = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             futures = [executor.submit(fetch_page_from_url, url) for url in pages_urls]
 
             for future in concurrent.futures.as_completed(futures):
-                cur_page += 1
+                i += 1
                 logger.info(
-                    f"Efetuando download das páginas do diário {cur_page} de {page_count} ..."
+                    f"Efetuando download das páginas do diário {i} de {page_count} ..."
                 )
                 page = future.result()
                 pages.append(page)
@@ -190,7 +191,7 @@ class TjWebScraping:
 
             if occurrences_list.has_next_page():
                 occurrences_list.next_page()
-                sleep(0.35)
+                sleep(0.5)
             else:
                 finished = True
 

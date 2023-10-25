@@ -36,17 +36,14 @@ def main():
             f"\nIniciando 2° etapa: Analise dos precatórios dos processos encontrados...\n"
         )
 
-        wanted_exectdos = config["requeridos_filtro"]
+        respondents = config["requeridos_filtro"]
         user = config["usuario_tj"]
         password = config["senha_tj"]
 
         scraping.login(user, password)
-        interesting_cases = scraping.get_interesting_cases_incidents(
-            case_numbers, wanted_exectdos
-        )
-
-        precatorys = scraping.filter_precatorys(interesting_cases.get_precatory_urls())
-        judment_executions = interesting_cases.get_judgment_executions()
+        incidents = scraping.get_cases_incidents(case_numbers, respondents)
+        precatorys = scraping.filter_precatorys(incidents.get_precatory_urls())
+        judment_executions = incidents.get_judgment_executions()
 
         save_result_to_xls_folder(case_numbers, precatorys, judment_executions)
 

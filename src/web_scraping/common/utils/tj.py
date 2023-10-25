@@ -13,11 +13,6 @@ def load_case_page(driver, case_number):
     return search_page.search_case(case_number)
 
 
-def clear_book_cases_result(cases):
-    logger.info("Eliminando processos duplicados ...")
-    return remove_duplicate(flatten(cases))
-
-
 def save_result_to_xls_folder(analyzed_cases, precatorys, enforcement_judgments):
     xls_dir = "xls"
     xls_name = generate_xls_name()

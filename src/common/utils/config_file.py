@@ -1,5 +1,6 @@
 import json
 from common.utils.date import is_valid_date
+from web_scraping.components.calendar import is_date_in_limit
 from common.exceptions.app_exception import AppException
 
 
@@ -28,8 +29,14 @@ def validate_config_params(config):
     if not is_valid_date(start_date):
         raise AppException("Data inicial inválida")
 
+    if not is_date_in_limit(start_date):
+        raise AppException("Data inicial fora do limite do site do TJ")
+
     if not is_valid_date(end_date):
         raise AppException("Data final inválida")
+
+    if not is_date_in_limit(end_date):
+        raise AppException("Data final fora do limite do site do TJ")
 
     if not keyword:
         raise AppException("Palavras-chaves não informadas")
