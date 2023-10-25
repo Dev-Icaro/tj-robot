@@ -1,7 +1,6 @@
 from web_scraping.pages.base_page import BasePage
 from common.constants.tj_site import LOGIN_URL
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 
 
 class LoginPage(BasePage):
@@ -9,7 +8,7 @@ class LoginPage(BasePage):
         super().__init__(driver)
 
         if not "sajcas/login" in driver.current_url:
-            self.driver.get()
+            self.driver.get(LOGIN_URL)
 
         self.wait_load()
 

@@ -1,4 +1,3 @@
-from web_scraping.common.exceptions import InvalidPageException
 from web_scraping.pages.base_page import BasePage
 from web_scraping.pages.case_page import CasePage
 from common.constants.tj_site import CASE_SEARCH_URL

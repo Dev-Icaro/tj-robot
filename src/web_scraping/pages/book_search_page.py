@@ -3,7 +3,7 @@ from common.constants.tj_site import BASE_URL
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from web_scraping.components.base_component import BaseComponent
-from web_scraping.components.calendar import find_calendar
+from web_scraping.common.utils.calendar import find_calendar
 from web_scraping.pages.base_page import BasePage
 import re
 

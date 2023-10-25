@@ -1,10 +1,9 @@
-from web_scraping.tj_scraping import Case, TjWebScraping, save_result_to_xls_folder
+from web_scraping.tj_scraping import TjWebScraping
 import sys
-import os
+from web_scraping.common.utils.tj import save_result_to_xls_folder
 from common.utils.logger import logger
 from common.utils.selenium import init_driver
 from common.utils.config_file import read_config_file
-from common.utils.xls import write_xls
 from tests.test import test_specific_url, test_filter_result, test_separation
 
 
