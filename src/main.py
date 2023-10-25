@@ -57,6 +57,7 @@ def main():
 
     finally:
         driver.quit()
+        input("Pressione alguma tecla para finalizar ...")
         sys.exit("Finalizando ... Até mais!")
 
 

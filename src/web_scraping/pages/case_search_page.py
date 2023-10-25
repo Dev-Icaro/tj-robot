@@ -34,7 +34,6 @@ class CaseSearchPage(BasePage):
 
     def submit_search(self):
         self.wait.until(EC.element_to_be_clickable(self.search_button_by)).click()
-        return CasePage(self.driver)
 
     def is_case_list_present(self):
         try:
@@ -49,10 +48,9 @@ class CaseSearchPage(BasePage):
 
         self.type_case_number(case_numbers)
         self.type_forum_number(forum_number)
-        try:
-            return self.submit_search()
-        except InvalidPageException:
-            # Se aparecer a lista de processos é por que tem mais de uma opção
-            # então basta clicar no botão de submit novamente.
-            if self.is_case_list_present():
-                return self.submit_search()
+        self.submit_search()
+
+        if self.is_case_list_present():
+            self.submit_search()
+
+        return CasePage(self.driver)

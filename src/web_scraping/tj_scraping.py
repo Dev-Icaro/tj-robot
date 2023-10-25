@@ -1,16 +1,14 @@
 from datetime import timedelta, datetime
-import os, xlsxwriter
+import os
 from time import sleep
 import concurrent.futures
 import pandas as pd
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from common.utils.array import remove_duplicate, flatten
-from common.utils.string import remove_accents, upper_no_accent
+from common.utils.string import upper_no_accent
 from common.utils.logger import logger
 from common.constants.tj_site import CASE_SEARCH_URL, LOGIN_URL
 from common.utils.xls import generate_xls_name, add_hyperlinks, hyperlink_format
-from common.exceptions.app_exception import AppException, RequiredArgumentException
+from common.exceptions.app_exception import RequiredArgumentException
 from web_scraping.common.exceptions import (
     DisabledCalendarDateException,
     InvalidPageException,
@@ -92,7 +90,7 @@ class TjWebScraping:
         for case_number in cases:
             try:
                 i += 1
-                logger.info(f"Análisando processo {i} de {len(cases)} ...")
+                logger.info(f"Analisando processo {i} de {len(cases)} ...")
 
                 case = self.load_case_page(case_number)
 
@@ -113,7 +111,7 @@ class TjWebScraping:
 
             finally:
                 self.driver.delete_all_cookies()
-                sleep(0.4)
+                sleep(0.2)
 
         count_precatorys = len(incidents.get_precatory_urls())
         count_judgments_exec = len(incidents.get_judgment_executions())
@@ -124,8 +122,6 @@ class TjWebScraping:
         return incidents
 
     def get_interesting_incidents(self, case_page: CasePage, result: CasesResult):
-        sleep(0.35)
-
         if case_page.is_private():
             return result
 
@@ -203,7 +199,7 @@ class TjWebScraping:
 
             if occurrences_list.has_next_page():
                 occurrences_list.next_page()
-                sleep(0.3)
+                sleep(0.35)
             else:
                 finished = True
 

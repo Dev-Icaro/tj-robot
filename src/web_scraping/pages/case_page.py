@@ -20,7 +20,7 @@ class CasePage(BasePage):
         if not "processo.codigo" in self.driver.current_url:
             raise InvalidPageException("Esta não é a página de um processo")
 
-        # self.wait_load()
+        self.wait_load()
 
     participants_by = (By.CSS_SELECTOR, "#tablePartesPrincipais tr.fundoClaro")
     private_by = (By.ID, "popupModalDiv")
@@ -98,7 +98,7 @@ class CasePage(BasePage):
         try:
             return JUDGMENT_EXECUTION_REF in self.get_judgment_execution()
         except:
-            # will get here if the case has a class intead judgment_execution
+            # will get here if the case has a class intead a judgment_execution
             return False
 
     def wait_load(self):
