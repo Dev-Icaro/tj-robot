@@ -65,7 +65,12 @@ class BookSearchPage(BasePage):
 
     def click_search_button(self):
         self.driver.find_element(*self.search_by).click()
-        return OccurrencesList(self.driver.find_element(*self.results_by))
+        try:
+            return OccurrencesList(self.driver.find_element(*self.results_by))
+        except:
+            raise AppException(
+                "\nNenhuma ocorrência no site do TJ com os parâmetros informados."
+            )
 
 
 class OccurrencesList(BaseComponent):
