@@ -1,12 +1,12 @@
 {
   "caderno_pesquisa": "caderno 4 - Judicial - 1ª Instância - Interior - Parte I",
-  "palavras_pesquisa": ["Expeça-se"],
+  "palavras_pesquisa": ["ofício requisitório"],
   "requeridos_filtro": [
     "DERSA - Desenvolvimento Rodoviário S.A. em liquidação",
     "Fazenda Pública do Estado de São Paulo"
   ],
-  "data_inicial_pesquisa": "25/10/2023",
-  "data_final_pesquisa": "25/10/2023",
+  "data_inicial_pesquisa": "30/08/2024",
+  "data_final_pesquisa": "30/08/2024",
   "usuario_tj": "28992745893",
   "senha_tj": "Alice17*"
 }

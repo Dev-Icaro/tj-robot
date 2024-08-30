@@ -7,6 +7,7 @@ from common.utils.config_file import read_config_file
 
 
 def main():
+    driver = None
     logger.info("Bem-vindo ao TJ Scraping!\n")
 
     try:
@@ -51,7 +52,9 @@ def main():
         logger.error(e)
 
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
+
         input("Pressione alguma tecla para finalizar ...")
         sys.exit("Finalizando ... Até mais!")
 
